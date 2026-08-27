@@ -24,6 +24,15 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./servico_cidade.db")
 
+# Provedores de Postgres (Render, Neon, Heroku...) costumam entregar a URL
+# como "postgres://" ou "postgresql://", que por padrão o SQLAlchemy tenta
+# abrir com o driver psycopg2. Usamos o psycopg (v3) no lugar, então
+# reescrevemos o esquema da URL pra apontar pro driver certo.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
 # connect_args só é necessário para SQLite
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
