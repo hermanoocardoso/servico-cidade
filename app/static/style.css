@@ -1,0 +1,165 @@
+:root {
+    --cor-primaria: #4C5FF5;
+    --cor-primaria-escura: #3846D1;
+    --cor-primaria-rgb: 76, 95, 245;
+    --cor-fundo: #F6F7FB;
+    --cor-texto: #1F2333;
+    --cor-texto-suave: #6B7280;
+    --raio: 14px;
+    --sombra: 0 2px 10px rgba(31, 35, 51, 0.06);
+    --sombra-hover: 0 12px 24px rgba(31, 35, 51, 0.10);
+}
+
+body {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+a {
+    color: var(--cor-primaria);
+}
+
+/* --- Navbar --- */
+.navbar.bg-primary {
+    background-color: var(--cor-primaria) !important;
+    box-shadow: 0 2px 12px rgba(var(--cor-primaria-rgb), 0.28);
+}
+.navbar-brand {
+    letter-spacing: 0.2px;
+}
+
+/* --- Botões --- */
+.btn {
+    border-radius: 10px;
+    font-weight: 500;
+}
+.btn-primary {
+    --bs-btn-bg: var(--cor-primaria);
+    --bs-btn-border-color: var(--cor-primaria);
+    --bs-btn-hover-bg: var(--cor-primaria-escura);
+    --bs-btn-hover-border-color: var(--cor-primaria-escura);
+    --bs-btn-active-bg: var(--cor-primaria-escura);
+    --bs-btn-active-border-color: var(--cor-primaria-escura);
+    --bs-btn-disabled-bg: var(--cor-primaria);
+    --bs-btn-disabled-border-color: var(--cor-primaria);
+    --bs-btn-focus-shadow-rgb: var(--cor-primaria-rgb);
+    box-shadow: 0 3px 8px rgba(var(--cor-primaria-rgb), 0.28);
+}
+.btn-outline-primary {
+    --bs-btn-color: var(--cor-primaria);
+    --bs-btn-border-color: var(--cor-primaria);
+    --bs-btn-hover-bg: var(--cor-primaria);
+    --bs-btn-hover-border-color: var(--cor-primaria);
+    --bs-btn-active-bg: var(--cor-primaria);
+    --bs-btn-active-border-color: var(--cor-primaria);
+    --bs-btn-focus-shadow-rgb: var(--cor-primaria-rgb);
+}
+.btn-link {
+    color: var(--cor-primaria);
+    font-weight: 500;
+}
+
+/* --- Texto e fundo "primary" (usados por badges/links soltos) --- */
+.text-primary {
+    color: var(--cor-primaria) !important;
+}
+.bg-primary {
+    background-color: var(--cor-primaria) !important;
+}
+
+/* --- Cards --- */
+.card {
+    border: none;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sombra-hover);
+}
+.card-img-top {
+    border-radius: var(--raio) var(--raio) 0 0;
+}
+.card-title {
+    font-weight: 600;
+}
+
+/* --- Formulários --- */
+.form-control,
+.form-select {
+    border-radius: 10px;
+    border-color: #E3E6EF;
+    padding: 0.6rem 0.9rem;
+}
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--cor-primaria);
+    box-shadow: 0 0 0 0.2rem rgba(var(--cor-primaria-rgb), 0.15);
+}
+.form-label {
+    font-weight: 500;
+    color: var(--cor-texto);
+}
+.form-check-input:checked {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+}
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--cor-primaria-rgb), 0.15);
+}
+
+/* --- Badges --- */
+.badge {
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 0.42em 0.85em;
+}
+.badge.bg-secondary {
+    background-color: #EEF0F7 !important;
+    color: #4B5163 !important;
+}
+.badge.bg-primary {
+    background-color: var(--cor-primaria) !important;
+}
+
+/* --- Alertas e caixas de destaque --- */
+.alert {
+    border: none;
+    border-radius: 12px;
+}
+.alert-light {
+    background-color: #EEF0F7;
+    color: var(--cor-texto-suave);
+}
+
+/* Caixas de chamada (CTA) da página inicial */
+.cta-box {
+    background: linear-gradient(135deg, #EEF1FF 0%, #F6F7FB 100%);
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+}
+
+/* Bloco de informações médicas (perfil e edição) */
+.info-medica {
+    background: #EEF5FF;
+    border-radius: var(--raio);
+    padding: 1rem 1.25rem;
+}
+
+/* Placeholder de "sem foto" */
+.sem-foto {
+    background-color: #EEF0F7;
+    color: var(--cor-texto-suave);
+    border-radius: var(--raio);
+}
+
+/* --- Navegação por abas/collapse no mobile --- */
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5);
+}

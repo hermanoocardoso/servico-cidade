@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block titulo %}Painel Admin{% endblock %}
+
+{% block conteudo %}
+<h3 class="mb-4">Painel administrativo</h3>
+
+<div class="card p-3 p-md-4 mb-4">
+    <h5>Aguardando aprovação ({{ pendentes|length }})</h5>
+    {% if pendentes %}
+    <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Nome</th><th>Cidade</th><th>Categorias</th><th></th></tr></thead>
+        <tbody>
+        {% for p in pendentes %}
+            <tr>
+                <td><a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a></td>
+                <td>{{ p.cidade }}</td>
+                <td>
+                    {% for c in p.categorias %}{{ c.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
+                    {% if p.eh_medico %}
+                    <br>
+                    <span class="badge bg-warning text-dark">🩺 confira o CRM antes de aprovar</span>
+                    <div class="small text-muted mt-1">
+                        CRM: {{ p.crm or "não informado" }}<br>
+                        {% if p.especialidade_medica %}Especialidade: {{ p.especialidade_medica }}{% endif %}
+                    </div>
+                    {% endif %}
+                </td>
+                <td class="text-nowrap">
+                    <form method="post" action="/admin/aprovar/{{ p.id }}" class="d-inline">
+                        <button class="btn btn-success btn-sm">Aprovar</button>
+                    </form>
+                    <form method="post" action="/admin/recusar/{{ p.id }}" class="d-inline"
+                          onsubmit="return confirm('Recusar e apagar este cadastro?');">
+                        <button class="btn btn-outline-danger btn-sm">Recusar</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nenhum cadastro pendente.</p>
+    {% endif %}
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
+    <h5>Profissionais aprovados ({{ aprovados|length }})</h5>
+    {% if aprovados %}
+    <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Nome</th><th>Cidade</th><th>Nota</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for p in aprovados %}
+            <tr>
+                <td><a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a></td>
+                <td>{{ p.cidade }}</td>
+                <td>⭐ {{ p.nota_media }} ({{ p.total_avaliacoes }})</td>
+                <td>{{ "Ativo" if p.ativo else "Pausado" }}</td>
+                <td>
+                    <form method="post" action="/admin/pausar/{{ p.id }}" class="d-inline">
+                        <button class="btn btn-outline-secondary btn-sm">{{ "Pausar" if p.ativo else "Reativar" }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nenhum profissional aprovado ainda.</p>
+    {% endif %}
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
+    <h5>Indicações pendentes ({{ indicacoes_pendentes|length }})</h5>
+    <p class="text-muted small">Profissionais sugeridos por usuários que ainda não estão cadastrados no app.</p>
+    {% if indicacoes_pendentes %}
+    <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr>
+                <th>Profissional indicado</th>
+                <th>Telefone</th>
+                <th>Categoria</th>
+                <th>Cidade</th>
+                <th>Indicado por</th>
+                <th>Observação</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for i in indicacoes_pendentes %}
+            <tr>
+                <td>{{ i.nome_profissional }}</td>
+                <td>{{ i.telefone_profissional }}</td>
+                <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
+                <td>{{ i.cidade or "-" }}</td>
+                <td>{{ i.indicado_por.nome }}<br><span class="text-muted small">{{ i.indicado_por.telefone }}</span></td>
+                <td class="small text-muted">{{ i.observacao or "-" }}</td>
+                <td class="text-nowrap">
+                    <form method="post" action="/admin/indicacao/{{ i.id }}/contatado" class="d-inline">
+                        <button class="btn btn-success btn-sm">Já contatei</button>
+                    </form>
+                    <form method="post" action="/admin/indicacao/{{ i.id }}/descartar" class="d-inline"
+                          onsubmit="return confirm('Descartar esta indicação?');">
+                        <button class="btn btn-outline-secondary btn-sm">Descartar</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nenhuma indicação pendente.</p>
+    {% endif %}
+</div>
+{% endblock %}

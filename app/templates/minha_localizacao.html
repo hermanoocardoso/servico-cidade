@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block titulo %}Minha localização{% endblock %}
+
+{% block conteudo %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h3 class="mb-2">Minha localização</h3>
+        <p class="text-muted">
+            Usamos isso só pra organizar o catálogo e mostrar primeiro quem
+            atende no seu bairro.
+        </p>
+
+        <button type="button" id="btnUsarLocalizacao" class="btn btn-outline-primary btn-sm mb-2">
+            📍 Usar minha localização atual
+        </button>
+        <div id="statusLocalizacao" class="form-text mb-3"></div>
+
+        <div id="mapaWrap" class="mb-3" style="display:none;">
+            <div id="mapa" style="height:280px;border-radius:8px;"></div>
+            <div class="form-text">Se o alfinete não estiver no lugar certo, arraste ele.</div>
+        </div>
+
+        <form method="post" action="/minha-localizacao">
+            <div class="mb-3">
+                <label class="form-label">Cidade</label>
+                <input type="text" id="inputCidade" name="cidade" class="form-control" value="{{ usuario.cidade or '' }}">
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Bairro</label>
+                <input type="text" id="inputBairro" name="bairro" class="form-control" value="{{ usuario.bairro or '' }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+    var btn = document.getElementById("btnUsarLocalizacao");
+    var status = document.getElementById("statusLocalizacao");
+    var mapaWrap = document.getElementById("mapaWrap");
+    var inputCidade = document.getElementById("inputCidade");
+    var inputBairro = document.getElementById("inputBairro");
+    var mapa, marcador;
+
+    function reverseGeocode(lat, lon) {
+        status.textContent = "Identificando o endereço...";
+        fetch(
+            "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat +
+            "&lon=" + lon + "&zoom=16&addressdetails=1&accept-language=pt-BR"
+        )
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var end = data.address || {};
+                var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
+                var cidade = end.city || end.town || end.municipality || end.county || "";
+                if (cidade) { inputCidade.value = cidade; }
+                if (bairro) { inputBairro.value = bairro; }
+                status.textContent = "Localização identificada — confira os campos abaixo antes de salvar.";
+            })
+            .catch(function () {
+                status.textContent = "Não consegui identificar o endereço automaticamente. Pode preencher os campos manualmente.";
+            });
+    }
+
+    function mostrarMapa(lat, lon) {
+        mapaWrap.style.display = "block";
+        if (!mapa) {
+            mapa = L.map("mapa").setView([lat, lon], 16);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "&copy; colaboradores do OpenStreetMap",
+                maxZoom: 19,
+            }).addTo(mapa);
+            marcador = L.marker([lat, lon], { draggable: true }).addTo(mapa);
+            marcador.on("dragend", function () {
+                var pos = marcador.getLatLng();
+                reverseGeocode(pos.lat, pos.lng);
+            });
+        } else {
+            mapa.setView([lat, lon], 16);
+            marcador.setLatLng([lat, lon]);
+        }
+        setTimeout(function () { mapa.invalidateSize(); }, 200);
+    }
+
+    btn.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+            status.textContent = "Seu navegador não suporta localização automática. Preencha manualmente.";
+            return;
+        }
+        status.textContent = "Buscando sua localização...";
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                var lat = pos.coords.latitude, lon = pos.coords.longitude;
+                mostrarMapa(lat, lon);
+                reverseGeocode(lat, lon);
+            },
+            function (erro) {
+                if (erro.code === erro.PERMISSION_DENIED) {
+                    status.textContent = "Você não permitiu o acesso à localização. Pode preencher manualmente abaixo.";
+                } else {
+                    status.textContent = "Não consegui pegar sua localização agora. Pode preencher manualmente abaixo.";
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+})();
+</script>
+{% endblock %}

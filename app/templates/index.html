@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}Encontre um profissional{% endblock %}
+
+{% macro card_profissional(p) %}
+<div class="col">
+    <div class="card h-100 shadow-sm">
+        {% if p.foto_url %}
+            <img src="{{ p.foto_url }}" class="card-img-top" style="height:180px;object-fit:cover;" alt="{{ p.usuario.nome }}">
+        {% else %}
+            <div class="card-img-top sem-foto d-flex align-items-center justify-content-center" style="height:180px;">
+                <span>📷 Sem foto</span>
+            </div>
+        {% endif %}
+        <div class="card-body">
+            <h5 class="card-title">{{ p.usuario.nome }}</h5>
+            {% if p.eh_medico and p.especialidade_medica %}
+                <p class="mb-1"><span class="badge bg-info text-dark">🩺 {{ p.especialidade_medica }}</span></p>
+            {% endif %}
+            <p class="mb-1">
+                {% for cat in p.categorias %}
+                    <span class="badge bg-secondary">{{ cat.nome }}</span>
+                {% endfor %}
+            </p>
+            {% if p.eh_medico and p.atende_convenio is not none %}
+                <p class="text-muted small mb-1">
+                    {% if p.atende_convenio %}✅ Atende convênio{% else %}💳 Só particular{% endif %}
+                </p>
+            {% endif %}
+            <p class="text-muted small mb-1">{{ p.bairro }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade }}</p>
+            {% if p.total_avaliacoes > 0 %}
+                <p class="mb-2">⭐ {{ p.nota_media }} <span class="text-muted small">({{ p.total_avaliacoes }} avaliações)</span></p>
+            {% else %}
+                <p class="mb-2 text-muted small">Ainda sem avaliações</p>
+            {% endif %}
+            <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm">Ver perfil</a>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block conteudo %}
+<h2 class="mb-3">Encontre um profissional de confiança</h2>
+
+<form method="get" action="/" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <input type="text" name="busca" value="{{ filtro_busca }}" class="form-control" placeholder="Nome ou tipo de serviço...">
+    </div>
+    <div class="col-md-3">
+        <select name="categoria" class="form-select">
+            <option value="">Todas as categorias</option>
+            {% for c in categorias %}
+                <option value="{{ c.id }}" {% if filtro_categoria == c.id %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <input type="text" name="cidade" value="{{ filtro_cidade }}" class="form-control" placeholder="Cidade / bairro">
+    </div>
+    <div class="col-md-2 d-grid">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+    </div>
+</form>
+
+{% if usuario and not bairro_usuario and profissionais_por_bairro %}
+<div class="alert alert-light border small">
+    Dica: <a href="/minha-localizacao">cadastre seu bairro</a> pra gente mostrar primeiro quem atende perto de você.
+</div>
+{% endif %}
+
+{% if profissionais_por_bairro %}
+    {% for bairro_nome, lista in profissionais_por_bairro %}
+    <h5 class="mt-4 mb-3">
+        {% if bairro_usuario and bairro_nome == bairro_usuario %}
+            📍 {{ bairro_nome }} <span class="badge bg-primary">seu bairro</span>
+        {% else %}
+            {{ bairro_nome }}
+        {% endif %}
+    </h5>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for p in lista %}
+            {{ card_profissional(p) }}
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% elif profissionais %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for p in profissionais %}
+        {{ card_profissional(p) }}
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-light border">Nenhum profissional encontrado com esses filtros ainda.</div>
+{% endif %}
+
+<div class="text-center mt-5 cta-box">
+    <h5>🙋 É profissional autônomo?</h5>
+    <p class="text-muted">Cadastre-se de graça e apareça para quem está procurando seu serviço na cidade.</p>
+    <a href="/cadastro" class="btn btn-primary">Quero me cadastrar</a>
+</div>
+
+<div class="text-center mt-3 cta-box">
+    <h5>👋 Conhece um profissional que devia estar aqui?</h5>
+    <p class="text-muted">Indique alguém de confiança e a gente entra em contato para convidar essa pessoa a se cadastrar.</p>
+    {% if usuario %}
+        <a href="/indicar" class="btn btn-outline-primary">Indicar profissional</a>
+    {% else %}
+        <a href="/login" class="btn btn-outline-primary">Entrar para indicar</a>
+    {% endif %}
+</div>
+{% endblock %}

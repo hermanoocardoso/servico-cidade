@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+servico_cidade.db
+app/static/fotos/*
+!app/static/fotos/.gitkeep

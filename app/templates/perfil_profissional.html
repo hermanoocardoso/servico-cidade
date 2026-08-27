@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block titulo %}{{ perfil.usuario.nome }}{% endblock %}
+
+{% block conteudo %}
+<a href="/" class="btn btn-link ps-0">&larr; Voltar ao catálogo</a>
+
+<div class="row mt-2">
+    <div class="col-md-4 text-center">
+        {% if perfil.foto_url %}
+            <img src="{{ perfil.foto_url }}" class="img-fluid rounded shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
+        {% else %}
+            <div class="sem-foto d-flex align-items-center justify-content-center mb-3" style="height:220px;">
+                <span>📷 Sem foto</span>
+            </div>
+        {% endif %}
+
+        <a class="btn btn-success w-100 mb-2"
+           href="https://wa.me/{{ perfil.whatsapp_numero }}"
+           target="_blank">
+           💬 Chamar no WhatsApp
+        </a>
+        <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
+    </div>
+
+    <div class="col-md-8">
+        <h2>{{ perfil.usuario.nome }}</h2>
+
+        {% if perfil.eh_medico %}
+        <div class="p-3 mb-3 info-medica">
+            {% if perfil.especialidade_medica %}
+                <p class="fs-5 mb-1"><strong>🩺 {{ perfil.especialidade_medica }}</strong></p>
+            {% endif %}
+            {% if perfil.crm %}
+                <p class="text-muted small mb-2">{{ perfil.crm }}</p>
+            {% endif %}
+            {% if perfil.atende_convenio == True %}
+                <p class="mb-0">
+                    <span class="badge bg-success">✅ Atende por convênio</span>
+                    {% if perfil.convenios_aceitos %}
+                        <span class="text-muted small ms-1">{{ perfil.convenios_aceitos }}</span>
+                    {% endif %}
+                </p>
+            {% elif perfil.atende_convenio == False %}
+                <p class="mb-0"><span class="badge bg-secondary">💳 Atendimento particular (sem convênio)</span></p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <p>
+            {% for cat in perfil.categorias %}
+                <span class="badge bg-secondary">{{ cat.nome }}</span>
+            {% endfor %}
+        </p>
+        <p class="text-muted">{{ perfil.bairro }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade }}</p>
+
+        {% if perfil.atende_domicilio %}
+            <p><span class="badge bg-info text-dark">🏠 Atende em domicílio</span></p>
+        {% endif %}
+
+        {% if perfil.total_avaliacoes > 0 %}
+            <p class="fs-5">⭐ {{ perfil.nota_media }} <span class="text-muted fs-6">({{ perfil.total_avaliacoes }} avaliações)</span></p>
+        {% else %}
+            <p class="text-muted">Ainda sem avaliações</p>
+        {% endif %}
+
+        {% if perfil.valor_mao_de_obra %}
+            <p><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
+        {% endif %}
+
+        {% if perfil.descricao %}
+            <p>{{ perfil.descricao }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<hr class="my-4">
+
+<h4>Avaliações</h4>
+
+{% if usuario and usuario.tipo == "cliente" %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title">{{ "Atualizar sua avaliação" if minha_avaliacao else "Deixe sua avaliação" }}</h6>
+        <form method="post" action="/profissional/{{ perfil.id }}/avaliar">
+            <div class="mb-2">
+                <select name="estrelas" class="form-select" style="max-width:200px;" required>
+                    {% set nota_atual = minha_avaliacao.estrelas if minha_avaliacao else 5 %}
+                    <option value="5" {% if nota_atual == 5 %}selected{% endif %}>⭐⭐⭐⭐⭐ Excelente</option>
+                    <option value="4" {% if nota_atual == 4 %}selected{% endif %}>⭐⭐⭐⭐ Bom</option>
+                    <option value="3" {% if nota_atual == 3 %}selected{% endif %}>⭐⭐⭐ Regular</option>
+                    <option value="2" {% if nota_atual == 2 %}selected{% endif %}>⭐⭐ Ruim</option>
+                    <option value="1" {% if nota_atual == 1 %}selected{% endif %}>⭐ Péssimo</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <textarea name="comentario" class="form-control" placeholder="Como foi o atendimento/serviço?" rows="2">{{ minha_avaliacao.comentario if minha_avaliacao else "" }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">{{ "Atualizar avaliação" if minha_avaliacao else "Enviar avaliação" }}</button>
+            {% if minha_avaliacao %}
+            <button type="submit" formaction="/profissional/{{ perfil.id }}/avaliar/excluir"
+                    class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir sua avaliação?')">
+                Excluir minha avaliação
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% elif not usuario %}
+<p class="text-muted"><a href="/login">Entre</a> como cliente para avaliar este profissional.</p>
+{% endif %}
+
+{% if avaliacoes %}
+    {% for r in avaliacoes %}
+    <div class="border-bottom pb-2 mb-2">
+        <strong>{{ "⭐" * r.estrelas }}</strong>
+        <span class="text-muted small">— {{ r.cliente.nome }}</span>
+        {% if r.comentario %}<p class="mb-0">{{ r.comentario }}</p>{% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <p class="text-muted">Nenhuma avaliação ainda. Seja o primeiro a avaliar!</p>
+{% endif %}
+{% endblock %}

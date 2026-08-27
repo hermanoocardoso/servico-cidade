@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}Indicar profissional{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <h3 class="mb-2">Indicar um profissional</h3>
+        <p class="text-muted">
+            Conhece alguém de confiança que ainda não está no catálogo? Deixe os
+            dados aqui — nossa equipe entra em contato para convidar essa pessoa
+            a se cadastrar.
+        </p>
+
+        {% if enviado %}
+        <div class="alert alert-success">
+            Indicação enviada, obrigado! Vamos entrar em contato com essa pessoa.
+        </div>
+        <a href="/" class="btn btn-outline-primary">Voltar ao catálogo</a>
+        {% else %}
+        <form method="post" action="/indicar">
+            <div class="mb-3">
+                <label class="form-label">Nome do profissional</label>
+                <input type="text" name="nome_profissional" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Telefone / WhatsApp dele(a)</label>
+                <input type="tel" name="telefone_profissional" class="form-control" placeholder="(22) 99999-9999" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Categoria (se souber)</label>
+                    <select name="categoria_id" class="form-select">
+                        <option value="">Não sei / outro</option>
+                        {% for c in categorias %}
+                        <option value="{{ c.id }}">{{ c.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Cidade / bairro</label>
+                    <input type="text" name="cidade" class="form-control">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Por que você indica essa pessoa? (opcional)</label>
+                <textarea name="observacao" class="form-control" rows="3" placeholder="Ex: Já usei o serviço, atende bem, preço justo..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar indicação</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

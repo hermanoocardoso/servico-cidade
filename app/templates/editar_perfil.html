@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block titulo %}Meu perfil profissional{% endblock %}
+
+{% block conteudo %}
+<h3 class="mb-4">Meu perfil profissional</h3>
+
+{% if perfil and not perfil.aprovado %}
+<div class="alert alert-warning">
+    Seu cadastro ainda está <strong>aguardando aprovação</strong>. Assim que for aprovado, você aparece no catálogo público.
+</div>
+{% endif %}
+
+{% if erro %}
+<div class="alert alert-danger">{{ erro }}</div>
+{% endif %}
+
+<form method="post" action="/profissional/perfil/editar" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Foto (opcional)</label>
+        <input type="file" name="foto" class="form-control" accept="image/*">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Categorias de serviço que você presta</label>
+        <div class="row">
+            {% for c in categorias %}
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="categorias_ids" value="{{ c.id }}"
+                        id="cat{{ c.id }}" {% if c.id in categorias_selecionadas %}checked{% endif %}
+                        {% if c.nome == "Médico" %}data-categoria-medico="1" onchange="toggleInfoMedica()"{% endif %}>
+                    <label class="form-check-label" for="cat{{ c.id }}">{{ c.nome }}</label>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="catOutro"
+                        onchange="document.getElementById('outraCategoriaWrap').style.display = this.checked ? 'block' : 'none';
+                                  if (!this.checked) { document.getElementById('outraCategoriaInput').value = ''; }">
+                    <label class="form-check-label" for="catOutro">Outro</label>
+                </div>
+            </div>
+        </div>
+        <div id="outraCategoriaWrap" class="mt-2" style="display:none;">
+            <label class="form-label small">Sua profissão não está na lista? Escreva aqui:</label>
+            <input type="text" id="outraCategoriaInput" name="outra_categoria" class="form-control"
+                   placeholder="Ex: Dedetizador de pragas urbanas">
+        </div>
+    </div>
+
+    <div id="infoMedicaWrap" class="info-medica p-3 mb-3" style="display:none;">
+        <h6 class="mb-3">🩺 Informações médicas</h6>
+        <p class="text-muted small">
+            Essas informações aparecem no seu perfil público e ajudam o paciente
+            a decidir com mais confiança — e o admin usa o CRM pra conferir antes de aprovar seu cadastro.
+        </p>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">CRM</label>
+                <input type="text" name="crm" class="form-control" placeholder="Ex: CRM-RJ 123456"
+                       value="{{ (perfil.crm or '') if perfil else '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Especialidade</label>
+                <select name="especialidade_medica" id="selectEspecialidade" class="form-select"
+                        onchange="document.getElementById('outraEspecialidadeWrap').style.display = (this.value === '_outra') ? 'block' : 'none';">
+                    <option value="">Selecione...</option>
+                    {% for esp in especialidades_medicas %}
+                    <option value="{{ esp }}" {% if perfil and perfil.especialidade_medica == esp %}selected{% endif %}>{{ esp }}</option>
+                    {% endfor %}
+                    <option value="_outra" {% if perfil and perfil.especialidade_medica and perfil.especialidade_medica not in especialidades_medicas %}selected{% endif %}>
+                        Outra especialidade
+                    </option>
+                </select>
+                <div id="outraEspecialidadeWrap" class="mt-2"
+                     style="display:{{ 'block' if perfil and perfil.especialidade_medica and perfil.especialidade_medica not in especialidades_medicas else 'none' }};">
+                    <input type="text" name="especialidade_medica_outra" class="form-control" placeholder="Digite a especialidade"
+                           value="{{ (perfil.especialidade_medica or '') if perfil and perfil.especialidade_medica not in especialidades_medicas else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <label class="form-label d-block">Atende por convênio?</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="atende_convenio" value="sim" id="convenioSim"
+                {% if perfil and perfil.atende_convenio == True %}checked{% endif %}
+                onchange="document.getElementById('conveniosWrap').style.display = 'block';">
+            <label class="form-check-label" for="convenioSim">Sim</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="atende_convenio" value="nao" id="convenioNao"
+                {% if perfil and perfil.atende_convenio == False %}checked{% endif %}
+                onchange="document.getElementById('conveniosWrap').style.display = 'none';">
+            <label class="form-check-label" for="convenioNao">Não, só particular</label>
+        </div>
+
+        <div id="conveniosWrap" class="mt-2" style="display:{{ 'block' if perfil and perfil.atende_convenio else 'none' }};">
+            <label class="form-label small">Quais convênios você atende?</label>
+            <input type="text" name="convenios_aceitos" class="form-control"
+                   placeholder="Ex: Unimed, Bradesco Saúde, SulAmérica"
+                   value="{{ (perfil.convenios_aceitos or '') if perfil else '' }}">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Cidade</label>
+            <input type="text" name="cidade" class="form-control" value="{{ perfil.cidade if perfil else '' }}" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Bairro / região que atende</label>
+            <input type="text" name="bairro" class="form-control" value="{{ (perfil.bairro or '') if perfil else '' }}">
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Endereço (opcional, se atende em um local fixo)</label>
+        <input type="text" name="endereco" class="form-control" value="{{ (perfil.endereco or '') if perfil else '' }}">
+        <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="atende_domicilio" value="1" id="atendeDomicilio"
+                {% if perfil and perfil.atende_domicilio %}checked{% endif %}>
+            <label class="form-check-label" for="atendeDomicilio">Atendo em domicílio (na casa do cliente)</label>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">WhatsApp para contato (se diferente do telefone de cadastro)</label>
+        <input type="text" name="whatsapp" class="form-control" placeholder="(22) 99999-9999" value="{{ (perfil.whatsapp or '') if perfil else '' }}">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Valor da mão de obra / serviço</label>
+        <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" id="valorCombinar"
+                {% if perfil and perfil.valor_mao_de_obra == "A combinar" %}checked{% endif %}
+                onchange="var campo = document.getElementById('valorInput');
+                          campo.readOnly = this.checked;
+                          campo.value = this.checked ? 'A combinar' : '';">
+            <label class="form-check-label" for="valorCombinar">A combinar</label>
+        </div>
+        <input type="text" id="valorInput" name="valor_mao_de_obra" class="form-control"
+               placeholder='Ex: "A partir de R$ 80"'
+               value="{{ (perfil.valor_mao_de_obra or '') if perfil else '' }}"
+               {% if perfil and perfil.valor_mao_de_obra == "A combinar" %}readonly{% endif %}>
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label">Descrição do seu trabalho</label>
+        <textarea name="descricao" class="form-control" rows="4" placeholder="Conte um pouco sobre sua experiência, o que você faz, diferenciais...">{{ (perfil.descricao or '') if perfil else '' }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar perfil</button>
+    {% if perfil and perfil.aprovado %}
+    <a href="/profissional/{{ perfil.id }}" class="btn btn-outline-secondary">Ver como fica meu perfil</a>
+    {% endif %}
+</form>
+
+<script>
+function toggleInfoMedica() {
+    var marcado = !!document.querySelector('[data-categoria-medico="1"]:checked');
+    document.getElementById('infoMedicaWrap').style.display = marcado ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', toggleInfoMedica);
+</script>
+{% endblock %}
