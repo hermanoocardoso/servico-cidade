@@ -36,7 +36,17 @@ elif DATABASE_URL.startswith("postgresql://"):
 # connect_args só é necessário para SQLite
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# pool_pre_ping: testa a conexão antes de usar e reabre sozinho se estiver
+# morta. Necessário com bancos "serverless" tipo Neon, que hibernam depois
+# de um tempo sem uso e derrubam conexões guardadas no pool, causando erro
+# "SSL connection has been closed unexpectedly" na primeira consulta depois
+# de um período parado. pool_recycle descarta conexões antigas por segurança.
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
