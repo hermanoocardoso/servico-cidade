@@ -232,3 +232,18 @@ a {
 .navbar-toggler {
     border-color: rgba(255, 255, 255, 0.5);
 }
+
+/* Círculo numerado do "Como funciona" na tela de boas-vindas */
+.step-num {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--cor-primaria);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
