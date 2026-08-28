@@ -38,6 +38,12 @@ a {
     border-radius: 10px;
     font-weight: 500;
 }
+/* Um <a> estilizado como botão (ex: "Entrar com Google") não pode herdar a
+   cor padrão de "link visitado" do navegador (fica roxo/marrom) -- trava
+   na cor que o próprio botão já define. */
+a.btn:visited {
+    color: var(--bs-btn-color, inherit) !important;
+}
 .btn-primary {
     --bs-btn-bg: var(--cor-primaria);
     --bs-btn-border-color: var(--cor-primaria);
