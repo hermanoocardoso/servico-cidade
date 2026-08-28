@@ -49,6 +49,7 @@ CATEGORIAS_PADRAO = [
     ("Assistência de eletrônicos", "Tecnologia"),
 
     ("Médico", "Saúde e Família"),
+    ("Dentista", "Saúde e Família"),
     ("Babá", "Saúde e Família"),
     ("Cuidador de idosos", "Saúde e Família"),
     ("Personal trainer", "Saúde e Família"),
@@ -71,6 +72,7 @@ CATEGORIAS_PADRAO = [
 
     ("Frete / Mudança", "Transporte"),
     ("Motoboy / Entregador", "Transporte"),
+    ("Motorista Particular / Uber", "Transporte"),
 ]
 
 

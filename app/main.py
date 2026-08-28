@@ -126,6 +126,7 @@ CATEGORIA_EMOJIS = {
     "Assistência de eletrônicos": "🔌",
 
     "Médico": "🩺",
+    "Dentista": "🦷",
     "Babá": "👶",
     "Cuidador de idosos": "🧓",
     "Personal trainer": "🏋️",
@@ -148,6 +149,7 @@ CATEGORIA_EMOJIS = {
 
     "Frete / Mudança": "🚚",
     "Motoboy / Entregador": "🛵",
+    "Motorista Particular / Uber": "🚕",
 }
 templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
 
