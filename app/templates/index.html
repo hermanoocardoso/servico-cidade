@@ -39,6 +39,30 @@
 {% endmacro %}
 
 {% block conteudo %}
+<div class="cta-box mb-4">
+    <h4 class="mb-1">Olá, {{ usuario.nome.split(" ")[0] }} 👋</h4>
+    <p class="text-muted mb-3">
+        {% if usuario.tipo == "profissional" %}
+            Gerencie seu perfil ou ajude a divulgar o app pra quem você conhece.
+        {% else %}
+            Encontre um profissional de confiança ou indique alguém que você conhece.
+        {% endif %}
+    </p>
+    <div class="d-flex flex-wrap gap-2">
+        {% if usuario.tipo == "profissional" %}
+            <a href="/profissional/perfil/editar" class="btn btn-primary btn-sm">🛠️ Editar meu perfil</a>
+            {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
+                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn btn-outline-primary btn-sm">👀 Ver meu perfil público</a>
+            {% endif %}
+        {% endif %}
+        <a href="/indicar" class="btn btn-outline-primary btn-sm">💡 Indicar profissional</a>
+        <a href="/minha-localizacao" class="btn btn-outline-primary btn-sm">📍 Minha localização</a>
+        {% if eh_admin_usuario %}
+            <a href="/admin" class="btn btn-outline-primary btn-sm">⚙️ Painel admin</a>
+        {% endif %}
+    </div>
+</div>
+
 <h2 class="mb-3">Encontre um profissional de confiança</h2>
 
 <form method="get" action="/" class="row g-2 mb-4">
@@ -101,10 +125,6 @@
 <div class="text-center mt-3 cta-box">
     <h5>👋 Conhece um profissional que devia estar aqui?</h5>
     <p class="text-muted">Indique alguém de confiança e a gente entra em contato para convidar essa pessoa a se cadastrar.</p>
-    {% if usuario %}
-        <a href="/indicar" class="btn btn-outline-primary">Indicar profissional</a>
-    {% else %}
-        <a href="/login" class="btn btn-outline-primary">Entrar para indicar</a>
-    {% endif %}
+    <a href="/indicar" class="btn btn-outline-primary">Indicar profissional</a>
 </div>
 {% endblock %}

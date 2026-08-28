@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Bem-vindo{% endblock %}
+
+{% block conteudo %}
+<div class="text-center py-4 py-md-5">
+    <h1 class="display-6 fw-bold mb-3">🔧 Serviço na Cidade</h1>
+    <p class="lead text-muted mb-5">
+        Encontre profissionais de confiança perto de você — ou cadastre-se
+        pra oferecer seus próprios serviços pra quem está procurando.
+    </p>
+
+    <div class="row justify-content-center g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card p-4 h-100 text-center d-flex flex-column">
+                <div class="fs-1 mb-2">🙋</div>
+                <h4>Sou cliente</h4>
+                <p class="text-muted flex-grow-1">
+                    Quero encontrar um profissional de confiança pra resolver alguma coisa.
+                </p>
+                <a href="/cadastro?tipo=cliente" class="btn btn-primary">Criar conta de cliente</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 h-100 text-center d-flex flex-column">
+                <div class="fs-1 mb-2">🛠️</div>
+                <h4>Sou profissional</h4>
+                <p class="text-muted flex-grow-1">
+                    Quero me cadastrar de graça e aparecer pra quem procura meu serviço.
+                </p>
+                <a href="/cadastro?tipo=profissional" class="btn btn-primary">Criar conta de profissional</a>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted">Já tem conta? <a href="/login">Entrar</a></p>
+</div>
+{% endblock %}

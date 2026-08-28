@@ -89,6 +89,9 @@ def catalogo(
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
+    if not usuario:
+        return templates.TemplateResponse("landing.html", {"request": request})
+
     # O <select> de categoria manda "" quando é "Todas as categorias" —
     # não dá pra tipar o parâmetro como int direto, senão o FastAPI
     # rejeita a string vazia antes de chegar aqui.
@@ -158,6 +161,7 @@ def catalogo(
             "filtro_categoria": categoria_id,
             "filtro_cidade": cidade or "",
             "filtro_busca": busca or "",
+            "eh_admin_usuario": eh_admin(usuario),
         },
     )
 
@@ -173,10 +177,13 @@ def _enviar_confirmacao(request: Request, usuario: "models.User"):
 
 
 @app.get("/cadastro")
-def form_cadastro(request: Request):
+def form_cadastro(request: Request, tipo: str = "cliente"):
     return templates.TemplateResponse(
         "cadastro.html",
-        {"request": request, "erro": None, "google_habilitado": google_oauth_habilitado},
+        {
+            "request": request, "erro": None, "google_habilitado": google_oauth_habilitado,
+            "tipo_selecionado": tipo if tipo in ("cliente", "profissional") else "cliente",
+        },
     )
 
 
@@ -199,7 +206,10 @@ def cadastrar(
     def erro(mensagem):
         return templates.TemplateResponse(
             "cadastro.html",
-            {"request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado},
+            {
+                "request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado,
+                "tipo_selecionado": tipo if tipo in ("cliente", "profissional") else "cliente",
+            },
         )
 
     if not EMAIL_REGEX.match(email):
@@ -480,6 +490,9 @@ def ver_profissional(
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
+    if not usuario:
+        return RedirectResponse("/login", status_code=303)
+
     perfil = db.query(models.ProfessionalProfile).filter(
         models.ProfessionalProfile.id == profissional_id
     ).first()

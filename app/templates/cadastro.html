@@ -40,11 +40,13 @@
             <div class="mb-4">
                 <label class="form-label d-block">Quero me cadastrar como:</label>
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="tipo" value="cliente" id="tipoCliente" checked>
+                    <input class="form-check-input" type="radio" name="tipo" value="cliente" id="tipoCliente"
+                        {% if (tipo_selecionado or "cliente") == "cliente" %}checked{% endif %}>
                     <label class="form-check-label" for="tipoCliente">Cliente (quero contratar serviços)</label>
                 </div>
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="tipo" value="profissional" id="tipoProfissional">
+                    <input class="form-check-input" type="radio" name="tipo" value="profissional" id="tipoProfissional"
+                        {% if tipo_selecionado == "profissional" %}checked{% endif %}>
                     <label class="form-check-label" for="tipoProfissional">Profissional (quero oferecer serviços)</label>
                 </div>
             </div>
