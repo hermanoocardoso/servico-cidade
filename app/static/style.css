@@ -147,6 +147,23 @@ a.btn:visited {
     color: var(--cor-texto-suave);
 }
 
+/* Barra fixa de WhatsApp no rodapé da tela, só no mobile — o objetivo
+   principal do perfil (chamar no WhatsApp) fica sempre acessível mesmo
+   depois de rolar a página até as recomendações. */
+.whatsapp-sticky-spacer {
+    height: 76px;
+}
+.whatsapp-sticky-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    background: #fff;
+    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
 /* Card de "deixe sua recomendação" no perfil público — precisa ser bem
    visível, então ganha fundo destacado em vez de um card branco comum. */
 .recomendacao-card {

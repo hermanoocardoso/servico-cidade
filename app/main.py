@@ -19,6 +19,7 @@ from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
@@ -56,6 +57,30 @@ with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
     CSS_VERSION = hashlib.md5(_f.read()).hexdigest()[:8]
 templates.env.globals["css_version"] = CSS_VERSION
 templates.env.globals["ano_atual"] = datetime.now().year
+
+# Ícone do WhatsApp (SVG inline) usado nos botões de contato — evita
+# depender de um pacote de ícones externo pra um único glifo.
+_WHATSAPP_ICON_PATH = (
+    "M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 "
+    "1.21h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm0 18.15h-.01c-1.5 0-2.97-.4-4.25-1.16l-.3-"
+    ".18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a"
+    "8.18 8.18 0 0 1 2.41 5.83c0 4.55-3.7 8.23-8.18 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12"
+    "-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.7"
+    "1-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1."
+    "36-.77-1.86-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 "
+    "2.57.12.17 1.75 2.68 4.25 3.75.59.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.5"
+    "8.21-1.08.14-1.18-.06-.1-.23-.16-.48-.28z"
+)
+
+
+def _whatsapp_icon(tamanho: int = 18) -> Markup:
+    return Markup(
+        f'<svg width="{tamanho}" height="{tamanho}" viewBox="0 0 24 24" fill="currentColor" '
+        f'aria-hidden="true"><path d="{_WHATSAPP_ICON_PATH}"/></svg>'
+    )
+
+
+templates.env.globals["whatsapp_icon"] = _whatsapp_icon
 
 # Formatos de foto aceitos (chave = content-type enviado pelo navegador).
 # Usamos a extensão daqui em vez de confiar no nome do arquivo enviado.
@@ -597,8 +622,12 @@ def ver_profissional(
 
     avaliacoes = sorted(perfil.avaliacoes, key=lambda r: r.criado_em, reverse=True)
 
+    # Qualquer pessoa logada pode avaliar, contanto que não seja o próprio
+    # dono do perfil se autoavaliando (cliente ou profissional avaliando
+    # outro profissional são ambos permitidos).
+    pode_avaliar = usuario.id != perfil.usuario_id
     minha_avaliacao = None
-    if usuario and usuario.tipo == "cliente":
+    if pode_avaliar:
         minha_avaliacao = next((r for r in avaliacoes if r.cliente_id == usuario.id), None)
 
     return templates.TemplateResponse(
@@ -609,6 +638,7 @@ def ver_profissional(
             "perfil": perfil,
             "avaliacoes": avaliacoes,
             "minha_avaliacao": minha_avaliacao,
+            "pode_avaliar": pode_avaliar,
         },
     )
 
@@ -622,10 +652,17 @@ def avaliar(
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
-    # Só clientes avaliam (a tela já esconde o formulário de quem não é
-    # cliente, mas a checagem tem que valer aqui também).
-    if not usuario or usuario.tipo != "cliente":
+    if not usuario:
         return RedirectResponse("/login", status_code=303)
+
+    perfil = db.query(models.ProfessionalProfile).filter(
+        models.ProfessionalProfile.id == profissional_id
+    ).first()
+    # Ninguém pode se autoavaliar — vale tanto pra cliente quanto pra
+    # profissional avaliando outro profissional (a tela já esconde o
+    # formulário nesse caso, mas a checagem tem que valer aqui também).
+    if not perfil or usuario.id == perfil.usuario_id:
+        return RedirectResponse(f"/profissional/{profissional_id}", status_code=303)
 
     estrelas = max(1, min(5, estrelas))  # trava entre 1 e 5
 
