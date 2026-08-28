@@ -26,7 +26,7 @@ CATEGORIAS_PADRAO = [
     "Diarista / Faxina",
     "Dedetização",
     "Montador de móveis",
-    "Técnico em informática",
+    "Informática & Tecnologia",
     "Manicure / Cabeleireiro",
     "Fotógrafo",
     "Frete / Mudança",

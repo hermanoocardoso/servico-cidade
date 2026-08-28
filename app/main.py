@@ -75,6 +75,34 @@ ESPECIALIDADES_MEDICAS = [
     "Geriatra",
 ]
 
+# Ícone (emoji) de cada categoria, usado na fileira de categorias da home e
+# nos cards do catálogo. Categoria nova/"Outro" que não estiver aqui cai no
+# ícone genérico 🔧.
+CATEGORIA_EMOJIS = {
+    "Eletricista": "⚡",
+    "Encanador": "🚿",
+    "Vidraceiro": "🪟",
+    "Pedreiro / Reformas": "🧱",
+    "Pintor": "🎨",
+    "Marido de aluguel": "🔧",
+    "Mecânico": "🔩",
+    "Chaveiro": "🔑",
+    "Ar-condicionado / Refrigeração": "❄️",
+    "Jardinagem": "🌳",
+    "Diarista / Faxina": "🧹",
+    "Dedetização": "🐜",
+    "Montador de móveis": "🪑",
+    "Informática & Tecnologia": "💻",
+    "Manicure / Cabeleireiro": "💅",
+    "Fotógrafo": "📸",
+    "Frete / Mudança": "🚚",
+    "Gesseiro": "🏗️",
+    "Serralheiro": "🛠️",
+    "Piscineiro": "🏊",
+    "Médico": "🩺",
+}
+templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
+
 
 # ---------------------------------------------------------------------------
 # Catálogo (página inicial)

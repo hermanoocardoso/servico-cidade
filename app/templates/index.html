@@ -17,7 +17,7 @@
                 <span class="badge bg-info text-dark mb-1">🩺 {{ p.especialidade_medica }}</span>
             {% else %}
                 {% for cat in p.categorias[:2] %}
-                    <span class="badge bg-secondary mb-1">{{ cat.nome }}</span>
+                    <span class="badge bg-secondary mb-1">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
                 {% endfor %}
             {% endif %}
             <p class="text-muted small mb-1">{{ p.bairro or '' }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade or '' }}</p>
@@ -79,19 +79,15 @@
     </div>
 </form>
 
-{% set emojis = {
-    "Eletricista": "⚡", "Encanador": "🚿", "Vidraceiro": "🪟", "Pedreiro / Reformas": "🧱",
-    "Pintor": "🎨", "Marido de aluguel": "🔧", "Mecânico": "🔩", "Chaveiro": "🔑",
-    "Ar-condicionado / Refrigeração": "❄️", "Jardinagem": "🌳", "Diarista / Faxina": "🧹",
-    "Dedetização": "🐜", "Montador de móveis": "🪑", "Técnico em informática": "💻",
-    "Manicure / Cabeleireiro": "💅", "Fotógrafo": "📸", "Frete / Mudança": "🚚",
-    "Gesseiro": "🏗️", "Serralheiro": "🛠️", "Piscineiro": "🏊", "Médico": "🩺"
-} %}
-<div class="category-scroll mb-4">
-    <a href="/" class="category-pill {% if not filtro_categoria %}active{% endif %}">Todas</a>
+<div class="category-grid mb-4">
+    <a href="/" class="category-tile {% if not filtro_categoria %}active{% endif %}">
+        <span class="category-icon">🔎</span>
+        <span class="category-label">Todas</span>
+    </a>
     {% for c in categorias %}
-        <a href="/?categoria={{ c.id }}" class="category-pill {% if filtro_categoria == c.id %}active{% endif %}">
-            {{ emojis.get(c.nome, "🔧") }} {{ c.nome }}
+        <a href="/?categoria={{ c.id }}" class="category-tile {% if filtro_categoria == c.id %}active{% endif %}">
+            <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
+            <span class="category-label">{{ c.nome }}</span>
         </a>
     {% endfor %}
 </div>

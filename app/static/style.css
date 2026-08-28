@@ -185,37 +185,47 @@ a {
 }
 
 /* --- Fileira de categorias com ícone (estilo GetNinjas) --- */
-.category-scroll {
+.category-grid {
     display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
+    flex-wrap: wrap;
+    gap: 1.1rem 0.5rem;
 }
-.category-pill {
+.category-tile {
     flex: 0 0 auto;
-    display: inline-flex;
+    width: 82px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 20px;
-    background: #fff;
-    border: 1px solid #E3E6EF;
-    color: var(--cor-texto);
-    font-size: 0.82rem;
-    font-weight: 500;
-    white-space: nowrap;
+    gap: 0.45rem;
     text-decoration: none;
-    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    color: var(--cor-texto);
+    text-align: center;
 }
-.category-pill:hover {
-    border-color: var(--cor-primaria);
-    color: var(--cor-primaria);
+.category-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #EEF1FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
-.category-pill.active {
+.category-tile:hover .category-icon {
+    transform: translateY(-3px);
+}
+.category-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+.category-tile.active .category-icon {
     background: var(--cor-primaria);
-    border-color: var(--cor-primaria);
-    color: #fff;
+}
+.category-tile.active .category-label {
+    color: var(--cor-primaria);
+    font-weight: 600;
 }
 
 /* --- Navegação por abas/collapse no mobile --- */
