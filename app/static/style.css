@@ -147,6 +147,46 @@ a.btn:visited {
     color: var(--cor-texto-suave);
 }
 
+/* Card de "deixe sua recomendação" no perfil público — precisa ser bem
+   visível, então ganha fundo destacado em vez de um card branco comum. */
+.recomendacao-card {
+    background: #FFF9E6;
+    border: 1px solid #FCE7A6;
+}
+
+/* Seleção de estrelas clicável (sem JS): os inputs vêm em ordem 5..1 no
+   HTML e o container é invertido com row-reverse, então o seletor de
+   irmãos gerais (~) consegue "pintar" da nota escolhida pra baixo. */
+.star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+.star-rating input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.star-rating label {
+    font-size: 2.2rem;
+    line-height: 1;
+    color: #E0E0E0;
+    cursor: pointer;
+    padding: 0 0.1rem;
+    transition: color 0.1s ease;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #FFC107;
+}
+.star-rating input:focus-visible + label {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 /* Bloco de informações médicas (perfil e edição) */
 .info-medica {
     background: #EEF5FF;

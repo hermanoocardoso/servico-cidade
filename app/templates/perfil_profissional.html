@@ -14,10 +14,11 @@
             </div>
         {% endif %}
 
-        <a class="btn btn-success w-100 mb-2"
+        <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
            href="https://wa.me/{{ perfil.whatsapp_numero }}"
            target="_blank" rel="noopener">
-           💬 Chamar no WhatsApp
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm0 18.15h-.01c-1.5 0-2.97-.4-4.25-1.16l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.55-3.7 8.23-8.18 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.36-.77-1.86-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.57.12.17 1.75 2.68 4.25 3.75.59.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.14-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
+           Chamar no WhatsApp
         </a>
         <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
     </div>
@@ -75,30 +76,39 @@
 
 <hr class="my-4">
 
-<h4>Avaliações</h4>
-
 {% if usuario and usuario.tipo == "cliente" %}
-<div class="card mb-4">
+<div class="card mb-4 recomendacao-card">
     <div class="card-body">
-        <h6 class="card-title">{{ "Atualizar sua avaliação" if minha_avaliacao else "Deixe sua avaliação" }}</h6>
+        <h4 class="mb-1">⭐ Deixe aqui sua recomendação</h4>
+        <p class="text-muted small mb-3">
+            Já contratou? Avalie e recomende — sua opinião ajuda outras pessoas a decidir.
+        </p>
         <form method="post" action="/profissional/{{ perfil.id }}/avaliar">
-            <div class="mb-2">
-                <select name="estrelas" class="form-select" style="max-width:200px;" required>
-                    {% set nota_atual = minha_avaliacao.estrelas if minha_avaliacao else 5 %}
-                    <option value="5" {% if nota_atual == 5 %}selected{% endif %}>⭐⭐⭐⭐⭐ Excelente</option>
-                    <option value="4" {% if nota_atual == 4 %}selected{% endif %}>⭐⭐⭐⭐ Bom</option>
-                    <option value="3" {% if nota_atual == 3 %}selected{% endif %}>⭐⭐⭐ Regular</option>
-                    <option value="2" {% if nota_atual == 2 %}selected{% endif %}>⭐⭐ Ruim</option>
-                    <option value="1" {% if nota_atual == 1 %}selected{% endif %}>⭐ Péssimo</option>
-                </select>
+            {% set nota_atual = minha_avaliacao.estrelas if minha_avaliacao else 5 %}
+            <div class="mb-3">
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="estrelas" value="5" {% if nota_atual == 5 %}checked{% endif %}>
+                    <label for="star5" title="Excelente">★</label>
+                    <input type="radio" id="star4" name="estrelas" value="4" {% if nota_atual == 4 %}checked{% endif %}>
+                    <label for="star4" title="Bom">★</label>
+                    <input type="radio" id="star3" name="estrelas" value="3" {% if nota_atual == 3 %}checked{% endif %}>
+                    <label for="star3" title="Regular">★</label>
+                    <input type="radio" id="star2" name="estrelas" value="2" {% if nota_atual == 2 %}checked{% endif %}>
+                    <label for="star2" title="Ruim">★</label>
+                    <input type="radio" id="star1" name="estrelas" value="1" {% if nota_atual == 1 %}checked{% endif %}>
+                    <label for="star1" title="Péssimo">★</label>
+                </div>
             </div>
-            <div class="mb-2">
-                <textarea name="comentario" class="form-control" placeholder="Como foi o atendimento/serviço?" rows="2">{{ minha_avaliacao.comentario if minha_avaliacao else "" }}</textarea>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Sua recomendação</label>
+                <textarea name="comentario" class="form-control" rows="3"
+                          placeholder="Conte como foi o atendimento e recomende pra quem está procurando...">{{ minha_avaliacao.comentario if minha_avaliacao else "" }}</textarea>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">{{ "Atualizar avaliação" if minha_avaliacao else "Enviar avaliação" }}</button>
+            <p class="text-muted small mb-3">Você está avaliando como <strong>{{ usuario.nome }}</strong> — seu nome aparece junto da recomendação.</p>
+            <button type="submit" class="btn btn-primary btn-lg fw-semibold">{{ "Atualizar recomendação" if minha_avaliacao else "Enviar recomendação" }}</button>
             {% if minha_avaliacao %}
             <button type="submit" formaction="/profissional/{{ perfil.id }}/avaliar/excluir"
-                    class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir sua avaliação?')">
+                    class="btn btn-outline-danger" onclick="return confirm('Excluir sua avaliação?')">
                 Excluir minha avaliação
             </button>
             {% endif %}
@@ -106,18 +116,26 @@
     </div>
 </div>
 {% elif not usuario %}
-<p class="text-muted"><a href="/login">Entre</a> como cliente para avaliar este profissional.</p>
+<div class="card mb-4 recomendacao-card">
+    <div class="card-body text-center">
+        <h4 class="mb-2">⭐ Deixe aqui sua recomendação</h4>
+        <p class="mb-3">Entre ou crie uma conta grátis pra avaliar e recomendar este profissional.</p>
+        <a href="/login" class="btn btn-primary fw-semibold me-2">Entrar</a>
+        <a href="/cadastro?tipo=cliente" class="btn btn-outline-primary fw-semibold">Criar conta grátis</a>
+    </div>
+</div>
 {% endif %}
 
+<h4 class="mb-3">Recomendações de clientes</h4>
 {% if avaliacoes %}
     {% for r in avaliacoes %}
     <div class="border-bottom pb-2 mb-2">
-        <strong>{{ "⭐" * r.estrelas }}</strong>
+        <strong class="text-warning">{{ "★" * r.estrelas }}</strong>
         <span class="text-muted small">— {{ r.cliente.nome }}</span>
         {% if r.comentario %}<p class="mb-0">{{ r.comentario }}</p>{% endif %}
     </div>
     {% endfor %}
 {% else %}
-    <p class="text-muted">Nenhuma avaliação ainda. Seja o primeiro a avaliar!</p>
+    <p class="text-muted">Nenhuma recomendação ainda. Seja o primeiro a avaliar!</p>
 {% endif %}
 {% endblock %}
