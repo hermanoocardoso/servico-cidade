@@ -10,6 +10,7 @@ Depois abra http://127.0.0.1:8000 no navegador.
 Veja o LEIA-ME.md na raiz do projeto para o passo a passo completo
 de instalação.
 """
+import hashlib
 import os
 import re
 from datetime import datetime, timedelta
@@ -41,6 +42,14 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+# "Cache busting" do CSS: gera um código a partir do conteúdo do arquivo, pra
+# usar como ?v=... no link do style.css. Assim, toda vez que o visual muda,
+# o navegador (e qualquer CDN na frente, tipo a que o Render usa) é obrigado
+# a baixar a versão nova em vez de continuar usando uma antiga guardada.
+with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
+    CSS_VERSION = hashlib.md5(_f.read()).hexdigest()[:8]
+templates.env.globals["css_version"] = CSS_VERSION
 
 # Formatos de foto aceitos (chave = content-type enviado pelo navegador).
 # Usamos a extensão daqui em vez de confiar no nome do arquivo enviado.
