@@ -7,9 +7,9 @@
 <div class="row mt-2">
     <div class="col-md-4 text-center">
         {% if perfil.foto_url %}
-            <img src="{{ perfil.foto_url }}" class="img-fluid rounded shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
+            <img src="{{ perfil.foto_url }}" class="foto-perfil-publico shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
         {% else %}
-            <div class="sem-foto d-flex align-items-center justify-content-center mb-3" style="height:220px;">
+            <div class="foto-perfil-publico sem-foto d-flex align-items-center justify-content-center mb-3">
                 <span>📷 Sem foto</span>
             </div>
         {% endif %}

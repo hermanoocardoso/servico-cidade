@@ -166,6 +166,16 @@ a.btn:visited {
     border-radius: var(--raio) var(--raio) 0 0;
     font-size: 1.6rem;
 }
+
+/* Foto no perfil público — tamanho fixo pra não depender das dimensões
+   da imagem que o profissional enviou (evita ficar gigante ou distorcida). */
+.foto-perfil-publico {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    border-radius: var(--raio);
+    font-size: 1.6rem;
+}
 .card-prof-nome {
     font-size: 0.95rem;
     font-weight: 600;

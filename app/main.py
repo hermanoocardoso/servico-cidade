@@ -109,7 +109,7 @@ CATEGORIA_EMOJIS = {
     "Serralheiro": "🛠️",
     "Piscineiro": "🏊",
     "Médico": "🩺",
-    "Babá": "🧸",
+    "Babá": "👶",
 }
 templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
 
