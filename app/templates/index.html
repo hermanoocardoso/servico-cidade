@@ -3,74 +3,68 @@
 
 {% macro card_profissional(p) %}
 <div class="col">
-    <div class="card h-100 shadow-sm">
+    <div class="card h-100 card-prof">
         {% if p.foto_url %}
-            <img src="{{ p.foto_url }}" class="card-img-top" style="height:180px;object-fit:cover;" alt="{{ p.usuario.nome }}">
+            <img src="{{ p.foto_url }}" class="card-prof-foto" alt="{{ p.usuario.nome }}">
         {% else %}
-            <div class="card-img-top sem-foto d-flex align-items-center justify-content-center" style="height:180px;">
-                <span>📷 Sem foto</span>
+            <div class="card-prof-foto sem-foto d-flex align-items-center justify-content-center">
+                <span>📷</span>
             </div>
         {% endif %}
-        <div class="card-body">
-            <h5 class="card-title">{{ p.usuario.nome }}</h5>
+        <div class="card-body p-3">
+            <h6 class="card-prof-nome mb-1">{{ p.usuario.nome }}</h6>
             {% if p.eh_medico and p.especialidade_medica %}
-                <p class="mb-1"><span class="badge bg-info text-dark">🩺 {{ p.especialidade_medica }}</span></p>
-            {% endif %}
-            <p class="mb-1">
-                {% for cat in p.categorias %}
-                    <span class="badge bg-secondary">{{ cat.nome }}</span>
+                <span class="badge bg-info text-dark mb-1">🩺 {{ p.especialidade_medica }}</span>
+            {% else %}
+                {% for cat in p.categorias[:2] %}
+                    <span class="badge bg-secondary mb-1">{{ cat.nome }}</span>
                 {% endfor %}
-            </p>
-            {% if p.eh_medico and p.atende_convenio is not none %}
-                <p class="text-muted small mb-1">
-                    {% if p.atende_convenio %}✅ Atende convênio{% else %}💳 Só particular{% endif %}
-                </p>
             {% endif %}
             <p class="text-muted small mb-1">{{ p.bairro or '' }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade or '' }}</p>
-            {% if p.total_avaliacoes > 0 %}
-                <p class="mb-2">⭐ {{ p.nota_media }} <span class="text-muted small">({{ p.total_avaliacoes }} avaliações)</span></p>
-            {% else %}
-                <p class="mb-2 text-muted small">Ainda sem avaliações</p>
+            {% if p.eh_medico and p.atende_convenio is not none %}
+                <p class="text-muted small mb-1">
+                    {% if p.atende_convenio %}✅ Convênio{% else %}💳 Particular{% endif %}
+                </p>
             {% endif %}
-            <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm">Ver perfil</a>
+            {% if p.total_avaliacoes > 0 %}
+                <p class="small mb-2">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }})</span></p>
+            {% else %}
+                <p class="small text-muted mb-2">Sem avaliações</p>
+            {% endif %}
+            <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm w-100">Ver perfil</a>
         </div>
     </div>
 </div>
 {% endmacro %}
 
 {% block conteudo %}
-<div class="cta-box mb-4">
-    <h4 class="mb-1">Olá, {{ usuario.nome.split(" ")[0] }} 👋</h4>
-    <p class="text-muted mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+        <span class="text-muted">Olá, {{ usuario.nome.split(" ")[0] }} 👋</span>
+    </div>
+    <div class="d-flex flex-wrap gap-2 small">
         {% if usuario.tipo == "profissional" %}
-            Gerencie seu perfil ou ajude a divulgar o app pra quem você conhece.
-        {% else %}
-            Encontre um profissional de confiança ou indique alguém que você conhece.
-        {% endif %}
-    </p>
-    <div class="d-flex flex-wrap gap-2">
-        {% if usuario.tipo == "profissional" %}
-            <a href="/profissional/perfil/editar" class="btn btn-primary btn-sm">🛠️ Editar meu perfil</a>
+            <a href="/profissional/perfil/editar" class="link-discreto">🛠️ Meu perfil</a>
             {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
-                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn btn-outline-primary btn-sm">👀 Ver meu perfil público</a>
+                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="link-discreto">👀 Perfil público</a>
             {% endif %}
         {% endif %}
-        <a href="/indicar" class="btn btn-outline-primary btn-sm">💡 Indicar profissional</a>
-        <a href="/minha-localizacao" class="btn btn-outline-primary btn-sm">📍 Minha localização</a>
+        <a href="/indicar" class="link-discreto">💡 Indicar</a>
+        <a href="/minha-localizacao" class="link-discreto">📍 Localização</a>
         {% if eh_admin_usuario %}
-            <a href="/admin" class="btn btn-outline-primary btn-sm">⚙️ Painel admin</a>
+            <a href="/admin" class="link-discreto">⚙️ Admin</a>
         {% endif %}
     </div>
 </div>
 
-<h2 class="mb-3">Encontre um profissional de confiança</h2>
+<h2 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h2>
 
-<form method="get" action="/" class="row g-2 mb-4">
+<form method="get" action="/" class="row g-2 mb-3">
     <div class="col-md-4">
         <input type="text" name="busca" value="{{ filtro_busca }}" class="form-control" placeholder="Nome ou tipo de serviço...">
     </div>
     <div class="col-md-3">
-        <select name="categoria" class="form-select">
+        <select name="categoria" class="form-select" aria-label="Filtrar por categoria">
             <option value="">Todas as categorias</option>
             {% for c in categorias %}
                 <option value="{{ c.id }}" {% if filtro_categoria == c.id %}selected{% endif %}>{{ c.nome }}</option>
@@ -85,6 +79,23 @@
     </div>
 </form>
 
+{% set emojis = {
+    "Eletricista": "⚡", "Encanador": "🚿", "Vidraceiro": "🪟", "Pedreiro / Reformas": "🧱",
+    "Pintor": "🎨", "Marido de aluguel": "🔧", "Mecânico": "🔩", "Chaveiro": "🔑",
+    "Ar-condicionado / Refrigeração": "❄️", "Jardinagem": "🌳", "Diarista / Faxina": "🧹",
+    "Dedetização": "🐜", "Montador de móveis": "🪑", "Técnico em informática": "💻",
+    "Manicure / Cabeleireiro": "💅", "Fotógrafo": "📸", "Frete / Mudança": "🚚",
+    "Gesseiro": "🏗️", "Serralheiro": "🛠️", "Piscineiro": "🏊", "Médico": "🩺"
+} %}
+<div class="category-scroll mb-4">
+    <a href="/" class="category-pill {% if not filtro_categoria %}active{% endif %}">Todas</a>
+    {% for c in categorias %}
+        <a href="/?categoria={{ c.id }}" class="category-pill {% if filtro_categoria == c.id %}active{% endif %}">
+            {{ emojis.get(c.nome, "🔧") }} {{ c.nome }}
+        </a>
+    {% endfor %}
+</div>
+
 {% if usuario and not bairro_usuario and profissionais_por_bairro %}
 <div class="alert alert-light border small">
     Dica: <a href="/minha-localizacao">cadastre seu bairro</a> pra gente mostrar primeiro quem atende perto de você.
@@ -93,21 +104,21 @@
 
 {% if profissionais_por_bairro %}
     {% for bairro_nome, lista in profissionais_por_bairro %}
-    <h5 class="mt-4 mb-3">
+    <h6 class="text-uppercase text-muted mt-4 mb-3 titulo-secao">
         {% if bairro_usuario and bairro_nome == bairro_usuario %}
             📍 {{ bairro_nome }} <span class="badge bg-primary">seu bairro</span>
         {% else %}
             {{ bairro_nome }}
         {% endif %}
-    </h5>
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    </h6>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
         {% for p in lista %}
             {{ card_profissional(p) }}
         {% endfor %}
     </div>
     {% endfor %}
 {% elif profissionais %}
-<div class="row row-cols-1 row-cols-md-3 g-4">
+<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
     {% for p in profissionais %}
         {{ card_profissional(p) }}
     {% endfor %}
@@ -116,15 +127,9 @@
 <div class="alert alert-light border">Nenhum profissional encontrado com esses filtros ainda.</div>
 {% endif %}
 
-<div class="text-center mt-5 cta-box">
-    <h5>🙋 É profissional autônomo?</h5>
-    <p class="text-muted">Cadastre-se de graça e apareça para quem está procurando seu serviço na cidade.</p>
-    <a href="/cadastro" class="btn btn-primary">Quero me cadastrar</a>
-</div>
-
-<div class="text-center mt-3 cta-box">
-    <h5>👋 Conhece um profissional que devia estar aqui?</h5>
-    <p class="text-muted">Indique alguém de confiança e a gente entra em contato para convidar essa pessoa a se cadastrar.</p>
-    <a href="/indicar" class="btn btn-outline-primary">Indicar profissional</a>
+<div class="text-center mt-5 pt-3 border-top small text-muted">
+    <span>🙋 É profissional autônomo? <a href="/cadastro">Cadastre-se de graça</a></span>
+    <span class="mx-2">·</span>
+    <span>👋 Conhece alguém que devia estar aqui? <a href="/indicar">Indique</a></span>
 </div>
 {% endblock %}
