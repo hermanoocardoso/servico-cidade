@@ -1,42 +1,64 @@
 """
 Envio de e-mails transacionais (confirmação de cadastro).
 
-Se as variáveis SMTP_* não estiverem preenchidas no .env, o e-mail não é
-enviado de verdade: o conteúdo (com o link de confirmação) é só impresso
-no terminal onde o `uvicorn` está rodando. Isso permite testar o fluxo de
-cadastro completo sem precisar configurar uma conta de e-mail primeiro.
+Usa a API do SendGrid (HTTPS, porta 443) em vez de SMTP tradicional — muita
+hospedagem gratuita, incluindo o Render, bloqueia as portas de SMTP
+(587/465/25) pra evitar spam, o que fazia o cadastro travar sem erro
+nenhum aparecer.
+
+Se SENDGRID_API_KEY ou EMAIL_FROM não estiverem preenchidos no .env, o
+e-mail não é enviado de verdade: o conteúdo (com o link de confirmação) é
+só impresso no terminal onde o `uvicorn` está rodando. Isso permite testar
+o fluxo de cadastro completo sem precisar configurar nada primeiro.
+
+Como configurar (gratuito, sem precisar ter domínio próprio):
+1. Crie uma conta em https://signup.sendgrid.com
+2. Vá em Settings -> Sender Authentication -> "Verify a Single Sender"
+   e preencha com o e-mail que você quer usar como remetente (ex: seu
+   Gmail). O SendGrid manda um e-mail de confirmação pra esse endereço —
+   clique no link de lá pra verificar.
+3. Vá em Settings -> API Keys -> "Create API Key", permissão
+   "Restricted Access" com "Mail Send: Full Access"
+4. Preencha no .env: SENDGRID_API_KEY (a chave gerada, começa com "SG.")
+   e EMAIL_FROM (o mesmo e-mail que você verificou no passo 2)
 """
 import os
-import smtplib
-from email.mime.text import MIMEText
+import httpx
 
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-EMAIL_FROM = os.getenv("EMAIL_FROM", "") or SMTP_USER
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "")
 
-smtp_configurado = bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD)
+sendgrid_habilitado = bool(SENDGRID_API_KEY and EMAIL_FROM)
 
 
 def enviar_email(destinatario: str, assunto: str, corpo_html: str) -> None:
-    if not smtp_configurado:
+    if not sendgrid_habilitado:
         print("=" * 70)
-        print(f"[E-MAIL NÃO ENVIADO — SMTP não configurado no .env] Para: {destinatario}")
+        print(f"[E-MAIL NÃO ENVIADO — SendGrid não configurado no .env] Para: {destinatario}")
         print(f"Assunto: {assunto}")
         print(corpo_html)
         print("=" * 70)
         return
 
-    msg = MIMEText(corpo_html, "html", "utf-8")
-    msg["Subject"] = assunto
-    msg["From"] = EMAIL_FROM
-    msg["To"] = destinatario
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as servidor:
-        servidor.starttls()
-        servidor.login(SMTP_USER, SMTP_PASSWORD)
-        servidor.sendmail(EMAIL_FROM, [destinatario], msg.as_string())
+    try:
+        resposta = httpx.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={
+                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "personalizations": [{"to": [{"email": destinatario}]}],
+                "from": {"email": EMAIL_FROM},
+                "subject": assunto,
+                "content": [{"type": "text/html", "value": corpo_html}],
+            },
+            timeout=10,
+        )
+        if resposta.status_code >= 400:
+            print(f"[ERRO AO ENVIAR E-MAIL] status={resposta.status_code} resposta={resposta.text}")
+    except httpx.HTTPError as e:
+        print(f"[ERRO AO ENVIAR E-MAIL] {e}")
 
 
 def enviar_email_confirmacao(destinatario: str, nome: str, link_confirmacao: str) -> None:

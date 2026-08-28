@@ -75,12 +75,24 @@ navegador pra ativar a conta.
 
 ### 3.2 Enviar o e-mail de confirmação de verdade
 
-Preencha no `.env` as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
-`SMTP_PASSWORD` e `EMAIL_FROM`. Pra usar uma conta Gmail: ative a
-verificação em 2 etapas e crie uma "senha de app" em
-https://myaccount.google.com/apppasswords — use essa senha de app (não
-a senha normal da conta). Qualquer outro provedor de SMTP também
-funciona, só trocar host/porta/usuário/senha.
+Usamos a API do **SendGrid** (via HTTPS) em vez de SMTP tradicional —
+muita hospedagem gratuita, incluindo o Render, bloqueia as portas de SMTP
+(587/465/25) pra evitar spam, o que faz o cadastro travar sem nenhum erro
+aparecer.
+
+1. Crie uma conta gratuita em https://signup.sendgrid.com
+2. Vá em **Settings → Sender Authentication → "Verify a Single Sender"**
+   e preencha com o e-mail que vai aparecer como remetente (não precisa
+   ter domínio próprio, dá pra usar seu Gmail mesmo) — confirme clicando
+   no link que o SendGrid manda pra esse endereço
+3. Vá em **Settings → API Keys → "Create API Key"**, com permissão
+   "Restricted Access" → "Mail Send: Full Access"
+4. Preencha no `.env`: `SENDGRID_API_KEY` (a chave gerada, começa com
+   `SG.`) e `EMAIL_FROM` (o mesmo e-mail verificado no passo 2)
+
+Se você tiver (ou comprar) um domínio próprio, dá pra trocar pelo
+**Resend** com domínio verificado — entrega ainda melhor, mas exige
+configurar registros DNS do domínio.
 
 ### 3.3 Ativar "Entrar com Google"
 
