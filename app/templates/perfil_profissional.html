@@ -51,7 +51,7 @@
                 <span class="badge bg-secondary">{{ cat.nome }}</span>
             {% endfor %}
         </p>
-        <p class="text-muted">{{ perfil.bairro }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade }}</p>
+        <p class="text-muted">{{ perfil.bairro or '' }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade or '' }}</p>
 
         {% if perfil.atende_domicilio %}
             <p><span class="badge bg-info text-dark">🏠 Atende em domicílio</span></p>
