@@ -1,7 +1,10 @@
 :root {
-    --cor-primaria: #4C5FF5;
-    --cor-primaria-escura: #3846D1;
-    --cor-primaria-rgb: 76, 95, 245;
+    /* Paleta alinhada com a logo da H2 Sistemas (ciano -> azul) */
+    --cor-primaria: #1E4FE0;
+    --cor-primaria-escura: #14369E;
+    --cor-primaria-rgb: 30, 79, 224;
+    --cor-secundaria: #1FC8E0;
+    --cor-secundaria-rgb: 31, 200, 224;
     --cor-fundo: #F6F7FB;
     --cor-texto: #1F2333;
     --cor-texto-suave: #6B7280;
@@ -360,7 +363,7 @@ a.btn:visited {
     position: relative;
     overflow: hidden;
     border-radius: 24px;
-    background: linear-gradient(135deg, var(--cor-primaria) 0%, #7B5CFA 100%);
+    background: linear-gradient(135deg, var(--cor-secundaria) 0%, var(--cor-primaria) 100%);
     padding: 3.5rem 1.5rem;
     color: #fff;
     text-align: center;
@@ -522,7 +525,7 @@ a.btn:visited {
 /* Painel de destaque pra atrair profissionais — fundo escuro, separado
    visualmente do resto da página em tons claros. */
 .pro-cta-panel {
-    background: linear-gradient(135deg, var(--cor-texto) 0%, #343a52 100%);
+    background: linear-gradient(135deg, #0B1B4D 0%, var(--cor-primaria-escura) 100%);
     color: #fff;
     border-radius: 24px;
     padding: 3rem 2rem;
