@@ -93,24 +93,56 @@ CATEGORIA_EMOJIS = {
     "Vidraceiro": "🪟",
     "Pedreiro / Reformas": "🧱",
     "Pintor": "🎨",
-    "Marido de aluguel": "🔧",
-    "Mecânico/Oficina": "🔩",
+    "Gesseiro": "🏗️",
+    "Serralheiro": "🛠️",
+    "Marceneiro": "🪚",
     "Chaveiro": "🔑",
-    "Ar-condicionado / Refrigeração": "❄️",
-    "Jardinagem": "🌳",
+    "Marido de aluguel": "🔧",
+    "Telhadista / Impermeabilização": "🏚️",
+
     "Diarista / Faxina": "🧹",
     "Dedetização": "🐜",
     "Montador de móveis": "🪑",
-    "Informática & Tecnologia": "💻",
-    "Manicure / Cabeleireiro": "💅",
-    "Fotógrafo": "📸",
-    "Frete / Mudança": "🚚",
-    "Gesseiro": "🏗️",
-    "Serralheiro": "🛠️",
     "Piscineiro": "🏊",
+    "Jardinagem": "🌳",
+    "Ar-condicionado / Refrigeração": "❄️",
+    "Tapeceiro / Estofados": "🛋️",
+    "Limpeza pós-obra": "🧽",
+
+    "Mecânico/Oficina": "🔩",
+    "Auto elétrico": "🔋",
+    "Funilaria e Pintura": "🚙",
+    "Guincho": "🚛",
+    "Lavagem de carros": "🧼",
+
+    "Informática & Tecnologia": "💻",
+    "Conserto de celular": "📱",
+    "Instalação de câmeras / CFTV": "🎥",
+    "Assistência de eletrônicos": "🔌",
+
     "Médico": "🩺",
     "Babá": "👶",
+    "Cuidador de idosos": "🧓",
+    "Personal trainer": "🏋️",
+    "Fisioterapeuta": "🦵",
+    "Psicólogo": "🧠",
+    "Nutricionista": "🥗",
+
+    "Manicure / Cabeleireiro": "💅",
+    "Maquiador(a)": "💄",
+    "Fotógrafo": "📸",
     "Confeiteiro(a) / Doceiro(a)": "🧁",
+    "Buffet / Garçom": "🍽️",
+    "DJ / Som": "🎵",
+    "Decoração de festas": "🎈",
+
+    "Aulas particulares": "📖",
+    "Professor de idiomas": "🗣️",
+    "Contador": "📊",
+    "Advogado": "⚖️",
+
+    "Frete / Mudança": "🚚",
+    "Motoboy / Entregador": "🛵",
 }
 templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
 
@@ -118,9 +150,11 @@ templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nom
 GRUPO_EMOJIS = {
     "Casa e Reformas": "🏠",
     "Limpeza e Manutenção": "🧹",
-    "Carros e Tecnologia": "💻",
+    "Carros e Motos": "🚗",
+    "Tecnologia": "💻",
     "Saúde e Família": "🩺",
     "Beleza e Eventos": "🎉",
+    "Aulas e Consultoria": "📚",
     "Transporte": "🚚",
 }
 templates.env.globals["grupo_emoji"] = lambda nome: GRUPO_EMOJIS.get(nome, "🔧")
@@ -513,7 +547,7 @@ def logout(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Minha localização (cidade/bairro do usuário, usada pra agrupar o catálogo)
+# Meus dados (nome, cidade/bairro do usuário — usado pra agrupar o catálogo)
 # ---------------------------------------------------------------------------
 
 @app.get("/minha-localizacao")
@@ -521,13 +555,14 @@ def form_minha_localizacao(request: Request, usuario=Depends(auth.usuario_logado
     if not usuario:
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
-        "minha_localizacao.html", {"request": request, "usuario": usuario},
+        "minha_localizacao.html", {"request": request, "usuario": usuario, "erro": None},
     )
 
 
 @app.post("/minha-localizacao")
 def salvar_minha_localizacao(
     request: Request,
+    nome: str = Form(""),
     cidade: str = Form(""),
     bairro: str = Form(""),
     db: Session = Depends(get_db),
@@ -536,6 +571,14 @@ def salvar_minha_localizacao(
     if not usuario:
         return RedirectResponse("/login", status_code=303)
 
+    nome = nome.strip()
+    if not nome:
+        return templates.TemplateResponse(
+            "minha_localizacao.html",
+            {"request": request, "usuario": usuario, "erro": "O nome não pode ficar em branco."},
+        )
+
+    usuario.nome = nome
     usuario.cidade = cidade.strip() or None
     usuario.bairro = bairro.strip() or None
     db.commit()

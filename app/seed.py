@@ -6,8 +6,8 @@ Rode uma vez, na primeira instalação:
     python -m app.seed
 
 Pode rodar de novo sem medo — ele não duplica categorias que já existem,
-e também atualiza o "grupo" de categorias antigas que ainda não tinham
-um (por exemplo, se você adicionou uma categoria nova direto no banco).
+e sempre realinha o "grupo" de cada categoria com o que está definido
+aqui embaixo (então também serve pra mover uma categoria de grupo).
 Edite a lista CATEGORIAS_PADRAO abaixo para ajustar ao que faz sentido
 na sua cidade — cada item é (nome, grupo). O grupo é usado pra organizar
 o menu de categorias em blocos maiores (estilo "mega menu").
@@ -23,7 +23,10 @@ CATEGORIAS_PADRAO = [
     ("Pintor", "Casa e Reformas"),
     ("Gesseiro", "Casa e Reformas"),
     ("Serralheiro", "Casa e Reformas"),
+    ("Marceneiro", "Casa e Reformas"),
+    ("Chaveiro", "Casa e Reformas"),
     ("Marido de aluguel", "Casa e Reformas"),
+    ("Telhadista / Impermeabilização", "Casa e Reformas"),
 
     ("Diarista / Faxina", "Limpeza e Manutenção"),
     ("Dedetização", "Limpeza e Manutenção"),
@@ -31,19 +34,43 @@ CATEGORIAS_PADRAO = [
     ("Piscineiro", "Limpeza e Manutenção"),
     ("Jardinagem", "Limpeza e Manutenção"),
     ("Ar-condicionado / Refrigeração", "Limpeza e Manutenção"),
+    ("Tapeceiro / Estofados", "Limpeza e Manutenção"),
+    ("Limpeza pós-obra", "Limpeza e Manutenção"),
 
-    ("Mecânico/Oficina", "Carros e Tecnologia"),
-    ("Chaveiro", "Carros e Tecnologia"),
-    ("Informática & Tecnologia", "Carros e Tecnologia"),
+    ("Mecânico/Oficina", "Carros e Motos"),
+    ("Auto elétrico", "Carros e Motos"),
+    ("Funilaria e Pintura", "Carros e Motos"),
+    ("Guincho", "Carros e Motos"),
+    ("Lavagem de carros", "Carros e Motos"),
+
+    ("Informática & Tecnologia", "Tecnologia"),
+    ("Conserto de celular", "Tecnologia"),
+    ("Instalação de câmeras / CFTV", "Tecnologia"),
+    ("Assistência de eletrônicos", "Tecnologia"),
 
     ("Médico", "Saúde e Família"),
     ("Babá", "Saúde e Família"),
+    ("Cuidador de idosos", "Saúde e Família"),
+    ("Personal trainer", "Saúde e Família"),
+    ("Fisioterapeuta", "Saúde e Família"),
+    ("Psicólogo", "Saúde e Família"),
+    ("Nutricionista", "Saúde e Família"),
 
     ("Manicure / Cabeleireiro", "Beleza e Eventos"),
+    ("Maquiador(a)", "Beleza e Eventos"),
     ("Fotógrafo", "Beleza e Eventos"),
     ("Confeiteiro(a) / Doceiro(a)", "Beleza e Eventos"),
+    ("Buffet / Garçom", "Beleza e Eventos"),
+    ("DJ / Som", "Beleza e Eventos"),
+    ("Decoração de festas", "Beleza e Eventos"),
+
+    ("Aulas particulares", "Aulas e Consultoria"),
+    ("Professor de idiomas", "Aulas e Consultoria"),
+    ("Contador", "Aulas e Consultoria"),
+    ("Advogado", "Aulas e Consultoria"),
 
     ("Frete / Mudança", "Transporte"),
+    ("Motoboy / Entregador", "Transporte"),
 ]
 
 
@@ -64,7 +91,7 @@ def rodar_seed():
         atualizadas = 0
         for nome, grupo in CATEGORIAS_PADRAO:
             categoria = existentes.get(nome)
-            if categoria and not categoria.grupo:
+            if categoria and categoria.grupo != grupo:
                 categoria.grupo = grupo
                 atualizadas += 1
 
