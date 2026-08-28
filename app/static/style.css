@@ -227,11 +227,11 @@ a.btn:visited {
 
 /* --- Catálogo: cards compactos --- */
 .card-prof-foto {
-    height: 130px;
+    height: 92px;
     width: 100%;
     object-fit: cover;
     border-radius: var(--raio) var(--raio) 0 0;
-    font-size: 1.6rem;
+    font-size: 1.3rem;
 }
 
 /* Foto no perfil público — tamanho fixo pra não depender das dimensões
@@ -244,11 +244,24 @@ a.btn:visited {
     font-size: 1.6rem;
 }
 .card-prof-nome {
-    font-size: 0.95rem;
+    font-size: 0.82rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+/* Card mais compacto no catálogo — badge, texto e botão menores que o
+   padrão do site, já que aqui aparecem várias dezenas por tela. */
+.card-prof-body .badge {
+    font-size: 0.68rem;
+    padding: 0.3em 0.6em;
+}
+.card-prof-body p {
+    font-size: 0.76rem;
+}
+.card-prof-body .btn {
+    font-size: 0.76rem;
+    padding: 0.3rem 0.5rem;
 }
 
 /* Título discreto de seção (ex: nome do bairro agrupando o catálogo) */
