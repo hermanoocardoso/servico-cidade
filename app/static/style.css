@@ -326,6 +326,21 @@ a.btn:visited {
     border-color: rgba(255, 255, 255, 0.5);
 }
 
+/* --- Assinatura no rodapé --- */
+.site-footer {
+    color: var(--cor-texto-suave);
+    font-size: 0.82rem;
+    border-top: 1px solid #E3E6EF;
+}
+.site-footer-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+    border-radius: 4px;
+}
+
 /* --- Hero da landing page (visitante não logado) --- */
 .landing-hero {
     position: relative;
@@ -349,16 +364,6 @@ a.btn:visited {
 }
 .landing-hero .btn-outline-light:hover {
     color: var(--cor-primaria-escura);
-}
-.landing-badge {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.18);
-    padding: 0.35rem 1rem;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.03em;
-    margin-bottom: 1.25rem;
 }
 .landing-hero-content {
     position: relative;
