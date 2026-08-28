@@ -46,6 +46,7 @@ class User(Base):
     tipo = Column(String(20), nullable=False, default="cliente")  # "cliente" ou "profissional"
     cidade = Column(String(120), nullable=True)  # onde a pessoa mora, usado pra agrupar o catálogo por bairro
     bairro = Column(String(120), nullable=True)
+    ativo = Column(Boolean, default=True, nullable=False)  # admin pode bloquear o login de uma conta
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     perfil_profissional = relationship(

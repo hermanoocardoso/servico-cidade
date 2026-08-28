@@ -12,6 +12,7 @@ de instalação.
 """
 import os
 import re
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
 from fastapi.responses import RedirectResponse
@@ -301,6 +302,9 @@ def login(
     if not usuario or not auth.verificar_senha(senha, usuario.senha_hash):
         return erro("E-mail ou senha incorretos.")
 
+    if not usuario.ativo:
+        return erro("Essa conta foi bloqueada. Entre em contato com o suporte.")
+
     if not usuario.email_verificado:
         return templates.TemplateResponse(
             "confirme_seu_email.html",
@@ -340,6 +344,14 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     usuario = db.query(models.User).filter(models.User.email == email).first()
 
     if usuario:
+        if not usuario.ativo:
+            return templates.TemplateResponse(
+                "login.html",
+                {
+                    "request": request, "google_habilitado": google_oauth_habilitado,
+                    "erro": "Essa conta foi bloqueada. Entre em contato com o suporte.",
+                },
+            )
         atualizado = False
         if not usuario.google_id:
             usuario.google_id = google_id
@@ -656,48 +668,25 @@ def _erro_editar_perfil(request, db, usuario, perfil, mensagem):
     )
 
 
-@app.post("/profissional/perfil/editar")
-def salvar_perfil(
-    request: Request,
-    cidade: str = Form(...),
-    bairro: str = Form(""),
-    endereco: str = Form(""),
-    atende_domicilio: str | None = Form(None),
-    descricao: str = Form(""),
-    valor_mao_de_obra: str = Form(""),
-    whatsapp: str = Form(""),
-    categorias_ids: list[int] = Form([]),
-    outra_categoria: str = Form(""),
-    crm: str = Form(""),
-    especialidade_medica: str = Form(""),
-    especialidade_medica_outra: str = Form(""),
-    atende_convenio: str | None = Form(None),
-    convenios_aceitos: str = Form(""),
-    foto: UploadFile | None = File(None),
-    db: Session = Depends(get_db),
-    usuario=Depends(auth.usuario_logado),
+def _aplicar_dados_perfil(
+    perfil, db, *, cidade, bairro, endereco, atende_domicilio, descricao,
+    valor_mao_de_obra, whatsapp, categorias_ids, outra_categoria,
+    crm, especialidade_medica, especialidade_medica_outra,
+    atende_convenio, convenios_aceitos, foto,
 ):
-    if not usuario or usuario.tipo != "profissional":
-        return RedirectResponse("/login", status_code=303)
-
-    perfil = usuario.perfil_profissional
-    if not perfil:
-        perfil = models.ProfessionalProfile(usuario_id=usuario.id, cidade="")
-        db.add(perfil)
-
+    """
+    Aplica os campos do formulário de editar perfil (usado tanto pelo próprio
+    profissional quanto pelo admin editando em nome dele). Retorna uma
+    mensagem de erro (str) se a foto for inválida, ou None se salvou certo.
+    """
     if foto and foto.filename:
         if foto.content_type not in EXTENSOES_FOTO_PERMITIDAS:
-            return _erro_editar_perfil(
-                request, db, usuario, perfil,
-                "Formato de foto não suportado. Envie uma imagem JPG, PNG ou WEBP.",
-            )
+            return "Formato de foto não suportado. Envie uma imagem JPG, PNG ou WEBP."
         conteudo = foto.file.read()
         if len(conteudo) > TAMANHO_MAXIMO_FOTO:
-            return _erro_editar_perfil(
-                request, db, usuario, perfil, "A foto é muito grande (máximo 5 MB).",
-            )
+            return "A foto é muito grande (máximo 5 MB)."
         extensao = EXTENSOES_FOTO_PERMITIDAS[foto.content_type]
-        nome_arquivo = f"profissional_{usuario.id}{extensao}"
+        nome_arquivo = f"profissional_{perfil.usuario_id}{extensao}"
         perfil.foto_url = storage.salvar_foto(conteudo, nome_arquivo, foto.content_type)
 
     perfil.cidade = cidade.strip()
@@ -749,6 +738,50 @@ def salvar_perfil(
 
     db.commit()
     db.refresh(perfil)
+    return None
+
+
+@app.post("/profissional/perfil/editar")
+def salvar_perfil(
+    request: Request,
+    cidade: str = Form(...),
+    bairro: str = Form(""),
+    endereco: str = Form(""),
+    atende_domicilio: str | None = Form(None),
+    descricao: str = Form(""),
+    valor_mao_de_obra: str = Form(""),
+    whatsapp: str = Form(""),
+    categorias_ids: list[int] = Form([]),
+    outra_categoria: str = Form(""),
+    crm: str = Form(""),
+    especialidade_medica: str = Form(""),
+    especialidade_medica_outra: str = Form(""),
+    atende_convenio: str | None = Form(None),
+    convenios_aceitos: str = Form(""),
+    foto: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not usuario or usuario.tipo != "profissional":
+        return RedirectResponse("/login", status_code=303)
+
+    perfil = usuario.perfil_profissional
+    if not perfil:
+        perfil = models.ProfessionalProfile(usuario_id=usuario.id, cidade="")
+        db.add(perfil)
+
+    erro_msg = _aplicar_dados_perfil(
+        perfil, db, cidade=cidade, bairro=bairro, endereco=endereco,
+        atende_domicilio=atende_domicilio, descricao=descricao,
+        valor_mao_de_obra=valor_mao_de_obra, whatsapp=whatsapp,
+        categorias_ids=categorias_ids, outra_categoria=outra_categoria,
+        crm=crm, especialidade_medica=especialidade_medica,
+        especialidade_medica_outra=especialidade_medica_outra,
+        atende_convenio=atende_convenio, convenios_aceitos=convenios_aceitos,
+        foto=foto,
+    )
+    if erro_msg:
+        return _erro_editar_perfil(request, db, usuario, perfil, erro_msg)
 
     return RedirectResponse(f"/profissional/{perfil.id}", status_code=303)
 
@@ -783,6 +816,43 @@ def admin_painel(
         models.Indicacao.status == "pendente"
     ).order_by(models.Indicacao.criado_em.desc()).all()
 
+    clientes = db.query(models.User).filter(
+        models.User.tipo == "cliente"
+    ).order_by(models.User.criado_em.desc()).all()
+
+    # --- Números do site ---------------------------------------------------
+    sete_dias_atras = datetime.utcnow() - timedelta(days=7)
+    total_avaliacoes = db.query(models.Review).count()
+    media_geral = db.query(func.avg(models.Review.estrelas)).scalar()
+    total_indicacoes_contatadas = db.query(models.Indicacao).filter(
+        models.Indicacao.status == "contatada"
+    ).count()
+    novos_cadastros_7d = db.query(models.User).filter(
+        models.User.criado_em >= sete_dias_atras
+    ).count()
+    categorias_populares = (
+        db.query(models.Category.nome, func.count(models.ProfessionalProfile.id))
+        .join(models.professional_categories, models.Category.id == models.professional_categories.c.category_id)
+        .join(models.ProfessionalProfile, models.ProfessionalProfile.id == models.professional_categories.c.professional_id)
+        .filter(models.ProfessionalProfile.aprovado == True)  # noqa: E712
+        .group_by(models.Category.nome)
+        .order_by(func.count(models.ProfessionalProfile.id).desc())
+        .limit(5)
+        .all()
+    )
+
+    numeros = {
+        "total_clientes": len(clientes),
+        "total_profissionais_aprovados": len(aprovados),
+        "total_profissionais_pendentes": len(pendentes),
+        "total_avaliacoes": total_avaliacoes,
+        "media_geral": round(media_geral, 1) if media_geral else None,
+        "total_indicacoes_pendentes": len(indicacoes_pendentes),
+        "total_indicacoes_contatadas": total_indicacoes_contatadas,
+        "novos_cadastros_7d": novos_cadastros_7d,
+        "categorias_populares": categorias_populares,
+    }
+
     return templates.TemplateResponse(
         "admin.html",
         {
@@ -791,8 +861,133 @@ def admin_painel(
             "pendentes": pendentes,
             "aprovados": aprovados,
             "indicacoes_pendentes": indicacoes_pendentes,
+            "clientes": clientes,
+            "numeros": numeros,
         },
     )
+
+
+@app.get("/admin/profissional/{perfil_id}/editar")
+def admin_form_editar_perfil(
+    perfil_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    perfil = db.query(models.ProfessionalProfile).filter(models.ProfessionalProfile.id == perfil_id).first()
+    if not perfil:
+        return RedirectResponse("/admin", status_code=303)
+
+    categorias = db.query(models.Category).order_by(models.Category.nome).all()
+    categorias_selecionadas = {c.id for c in perfil.categorias}
+
+    return templates.TemplateResponse(
+        "editar_perfil.html",
+        {
+            "request": request,
+            "usuario": usuario,
+            "perfil": perfil,
+            "categorias": categorias,
+            "categorias_selecionadas": categorias_selecionadas,
+            "especialidades_medicas": ESPECIALIDADES_MEDICAS,
+            "erro": None,
+            "form_action": f"/admin/profissional/{perfil_id}/editar",
+            "admin_editando": perfil.usuario,
+        },
+    )
+
+
+@app.post("/admin/profissional/{perfil_id}/editar")
+def admin_salvar_perfil(
+    perfil_id: int,
+    request: Request,
+    cidade: str = Form(...),
+    bairro: str = Form(""),
+    endereco: str = Form(""),
+    atende_domicilio: str | None = Form(None),
+    descricao: str = Form(""),
+    valor_mao_de_obra: str = Form(""),
+    whatsapp: str = Form(""),
+    categorias_ids: list[int] = Form([]),
+    outra_categoria: str = Form(""),
+    crm: str = Form(""),
+    especialidade_medica: str = Form(""),
+    especialidade_medica_outra: str = Form(""),
+    atende_convenio: str | None = Form(None),
+    convenios_aceitos: str = Form(""),
+    foto: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    perfil = db.query(models.ProfessionalProfile).filter(models.ProfessionalProfile.id == perfil_id).first()
+    if not perfil:
+        return RedirectResponse("/admin", status_code=303)
+
+    erro_msg = _aplicar_dados_perfil(
+        perfil, db, cidade=cidade, bairro=bairro, endereco=endereco,
+        atende_domicilio=atende_domicilio, descricao=descricao,
+        valor_mao_de_obra=valor_mao_de_obra, whatsapp=whatsapp,
+        categorias_ids=categorias_ids, outra_categoria=outra_categoria,
+        crm=crm, especialidade_medica=especialidade_medica,
+        especialidade_medica_outra=especialidade_medica_outra,
+        atende_convenio=atende_convenio, convenios_aceitos=convenios_aceitos,
+        foto=foto,
+    )
+    if erro_msg:
+        categorias = db.query(models.Category).order_by(models.Category.nome).all()
+        categorias_selecionadas = {c.id for c in perfil.categorias}
+        return templates.TemplateResponse(
+            "editar_perfil.html",
+            {
+                "request": request,
+                "usuario": usuario,
+                "perfil": perfil,
+                "categorias": categorias,
+                "categorias_selecionadas": categorias_selecionadas,
+                "especialidades_medicas": ESPECIALIDADES_MEDICAS,
+                "erro": erro_msg,
+                "form_action": f"/admin/profissional/{perfil_id}/editar",
+                "admin_editando": perfil.usuario,
+            },
+        )
+
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/usuario/{usuario_id}/bloquear")
+def admin_bloquear_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+    alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
+    if alvo and alvo.email != ADMIN_EMAIL:  # admin nao consegue se autobloquear
+        alvo.ativo = not alvo.ativo
+        db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/usuario/{usuario_id}/excluir")
+def admin_excluir_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+    alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
+    if alvo and alvo.email != ADMIN_EMAIL:  # admin nao consegue se autoexcluir
+        db.delete(alvo)
+        db.commit()
+    return RedirectResponse("/admin", status_code=303)
 
 
 @app.post("/admin/aprovar/{perfil_id}")

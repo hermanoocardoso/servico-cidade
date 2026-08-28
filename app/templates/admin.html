@@ -5,6 +5,53 @@
 <h3 class="mb-4">Painel administrativo</h3>
 
 <div class="card p-3 p-md-4 mb-4">
+    <h5 class="mb-3">Números do site</h5>
+    <div class="row row-cols-2 row-cols-md-4 g-3 mb-3">
+        <div class="col">
+            <div class="text-muted small">Clientes</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_clientes }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Profissionais aprovados</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_profissionais_aprovados }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Aguardando aprovação</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_profissionais_pendentes }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Novos cadastros (7 dias)</div>
+            <div class="fs-3 fw-semibold">{{ numeros.novos_cadastros_7d }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Avaliações</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_avaliacoes }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Nota média geral</div>
+            <div class="fs-3 fw-semibold">{{ "⭐ " + numeros.media_geral|string if numeros.media_geral else "—" }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Indicações pendentes</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_indicacoes_pendentes }}</div>
+        </div>
+        <div class="col">
+            <div class="text-muted small">Indicações contatadas</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_indicacoes_contatadas }}</div>
+        </div>
+    </div>
+
+    {% if numeros.categorias_populares %}
+    <div class="text-muted small mb-1">Categorias mais comuns entre os aprovados</div>
+    <ol class="mb-0 ps-3">
+        {% for nome, total in numeros.categorias_populares %}
+        <li>{{ nome }} <span class="text-muted">({{ total }})</span></li>
+        {% endfor %}
+    </ol>
+    {% endif %}
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
     <h5>Aguardando aprovação ({{ pendentes|length }})</h5>
     {% if pendentes %}
     <div class="table-responsive">
@@ -57,11 +104,21 @@
                 <td><a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a></td>
                 <td>{{ p.cidade }}</td>
                 <td>⭐ {{ p.nota_media }} ({{ p.total_avaliacoes }})</td>
-                <td>{{ "Ativo" if p.ativo else "Pausado" }}</td>
                 <td>
+                    {{ "Ativo" if p.ativo else "Pausado" }}
+                    {% if not p.usuario.ativo %}<br><span class="badge bg-danger">login bloqueado</span>{% endif %}
+                </td>
+                <td class="text-nowrap">
+                    <a href="/admin/profissional/{{ p.id }}/editar" class="btn btn-outline-primary btn-sm">Editar</a>
                     <form method="post" action="/admin/pausar/{{ p.id }}" class="d-inline">
                         <button class="btn btn-outline-secondary btn-sm">{{ "Pausar" if p.ativo else "Reativar" }}</button>
                     </form>
+                    {% if p.usuario.email != usuario.email %}
+                    <form method="post" action="/admin/usuario/{{ p.usuario.id }}/bloquear" class="d-inline"
+                          onsubmit="return confirm('{{ 'Bloquear' if p.usuario.ativo else 'Desbloquear' }} o login desse profissional?');">
+                        <button class="btn btn-outline-danger btn-sm">{{ "Bloquear login" if p.usuario.ativo else "Desbloquear login" }}</button>
+                    </form>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
@@ -70,6 +127,40 @@
     </div>
     {% else %}
     <p class="text-muted mb-0">Nenhum profissional aprovado ainda.</p>
+    {% endif %}
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
+    <h5>Clientes cadastrados ({{ clientes|length }})</h5>
+    {% if clientes %}
+    <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Cadastrado em</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for c in clientes %}
+            <tr>
+                <td>{{ c.nome }}</td>
+                <td>{{ c.email }}</td>
+                <td>{{ c.telefone }}</td>
+                <td>{{ c.criado_em.strftime("%d/%m/%Y") if c.criado_em else "-" }}</td>
+                <td>{{ "Ativo" if c.ativo else "Bloqueado" }}</td>
+                <td class="text-nowrap">
+                    <form method="post" action="/admin/usuario/{{ c.id }}/bloquear" class="d-inline"
+                          onsubmit="return confirm('{{ 'Bloquear' if c.ativo else 'Desbloquear' }} o login desse cliente?');">
+                        <button class="btn btn-outline-secondary btn-sm">{{ "Bloquear" if c.ativo else "Desbloquear" }}</button>
+                    </form>
+                    <form method="post" action="/admin/usuario/{{ c.id }}/excluir" class="d-inline"
+                          onsubmit="return confirm('Excluir esse cliente e todas as avaliações dele? Não dá pra desfazer.');">
+                        <button class="btn btn-outline-danger btn-sm">Excluir</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nenhum cliente cadastrado ainda.</p>
     {% endif %}
 </div>
 

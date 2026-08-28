@@ -53,4 +53,10 @@ def usuario_logado(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")
     if not user_id:
         return None
-    return db.query(models.User).filter(models.User.id == user_id).first()
+    usuario = db.query(models.User).filter(models.User.id == user_id).first()
+    if usuario and not usuario.ativo:
+        # Conta bloqueada pelo admin depois que a sessão foi criada: derruba
+        # o login sem precisar que a pessoa clique em "Sair".
+        request.session.clear()
+        return None
+    return usuario

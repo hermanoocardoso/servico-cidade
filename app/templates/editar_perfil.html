@@ -2,9 +2,14 @@
 {% block titulo %}Meu perfil profissional{% endblock %}
 
 {% block conteudo %}
+{% if admin_editando %}
+<h3 class="mb-4">Editando perfil de {{ admin_editando.nome }} <span class="text-muted small">(via admin)</span></h3>
+<a href="/admin" class="btn btn-link ps-0 mb-2">&larr; Voltar pro painel admin</a>
+{% else %}
 <h3 class="mb-4">Meu perfil profissional</h3>
+{% endif %}
 
-{% if perfil and not perfil.aprovado %}
+{% if perfil and not perfil.aprovado and not admin_editando %}
 <div class="alert alert-warning">
     Seu cadastro ainda está <strong>aguardando aprovação</strong>. Assim que for aprovado, você aparece no catálogo público.
 </div>
@@ -14,7 +19,7 @@
 <div class="alert alert-danger">{{ erro }}</div>
 {% endif %}
 
-<form method="post" action="/profissional/perfil/editar" enctype="multipart/form-data">
+<form method="post" action="{{ form_action or '/profissional/perfil/editar' }}" enctype="multipart/form-data">
     <div class="mb-3">
         <label class="form-label">Foto (opcional)</label>
         <input type="file" name="foto" class="form-control" accept="image/*">
