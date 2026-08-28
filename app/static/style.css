@@ -190,14 +190,40 @@ a.btn:visited {
     font-size: 0.78rem;
 }
 
-/* Links de atalho discretos (barra de saudação no topo da home) */
-.link-discreto {
-    color: var(--cor-texto-suave);
+/* Atalhos em formato de botão (barra de saudação no topo da home) —
+   fundo azul bem claro pra ficar óbvio que são clicáveis, sem competir
+   visualmente com o catálogo. */
+.btn-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
     text-decoration: none;
     font-weight: 500;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    transition: background 0.15s ease;
 }
-.link-discreto:hover {
-    color: var(--cor-primaria);
+.btn-chip:visited {
+    color: var(--cor-primaria-escura);
+}
+.btn-chip:hover {
+    background: #DCE2FF;
+    color: var(--cor-primaria-escura);
+}
+
+/* Quadrante de bairro no catálogo — separa visivelmente cada grupo */
+.secao-bairro {
+    background: #fff;
+    border: 1px solid #EEF0F7;
+    border-radius: var(--raio);
+    padding: 1.25rem;
+}
+.secao-bairro-destaque {
+    background: #F3F5FF;
+    border: 1px solid #D7DDFF;
 }
 
 /* --- Fileira de categorias com ícone (estilo GetNinjas) --- */

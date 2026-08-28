@@ -35,6 +35,7 @@ CATEGORIAS_PADRAO = [
     "Piscineiro",
     "Médico",
     "Babá",
+    "Confeiteiro(a) / Doceiro(a)",
 ]
 
 
