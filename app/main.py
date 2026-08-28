@@ -134,7 +134,11 @@ CATEGORIA_EMOJIS = {
     "Psicólogo": "🧠",
     "Nutricionista": "🥗",
 
-    "Manicure / Cabeleireiro": "💅",
+    "Cabeleireiro": "💇",
+    "Manicure": "💅",
+    "Podóloga": "🦶",
+    "Barbeiro": "💈",
+    "Salão de Beleza": "✂️",
     "Maquiador(a)": "💄",
     "Fotógrafo": "📸",
     "Confeiteiro(a) / Doceiro(a)": "🧁",

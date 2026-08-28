@@ -57,7 +57,11 @@ CATEGORIAS_PADRAO = [
     ("Psicólogo", "Saúde e Família"),
     ("Nutricionista", "Saúde e Família"),
 
-    ("Manicure / Cabeleireiro", "Beleza e Eventos"),
+    ("Cabeleireiro", "Beleza e Eventos"),
+    ("Manicure", "Beleza e Eventos"),
+    ("Podóloga", "Beleza e Eventos"),
+    ("Barbeiro", "Beleza e Eventos"),
+    ("Salão de Beleza", "Beleza e Eventos"),
     ("Maquiador(a)", "Beleza e Eventos"),
     ("Fotógrafo", "Beleza e Eventos"),
     ("Confeiteiro(a) / Doceiro(a)", "Beleza e Eventos"),
@@ -75,12 +79,26 @@ CATEGORIAS_PADRAO = [
     ("Motorista Particular / Uber", "Transporte"),
 ]
 
+# Renomeações de categorias antigas que viraram outra coisa mais específica
+# (mantém o mesmo id, então nenhum profissional já cadastrado perde a
+# categoria — só passa a aparecer com o nome novo).
+RENOMEACOES = [
+    ("Manicure / Cabeleireiro", "Cabeleireiro"),
+]
+
 
 def rodar_seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         existentes = {c.nome: c for c in db.query(models.Category).all()}
+
+        for nome_antigo, nome_novo in RENOMEACOES:
+            antiga = existentes.get(nome_antigo)
+            if antiga and nome_novo not in existentes:
+                antiga.nome = nome_novo
+                existentes[nome_novo] = antiga
+                del existentes[nome_antigo]
 
         novas = [
             models.Category(nome=nome, grupo=grupo)
