@@ -1,0 +1,18 @@
+name: Manter o site acordado
+
+# O plano gratuito do Render hiberna o app depois de ~15 minutos sem
+# nenhum acesso. Esse job visita o site a cada 10 minutos pra evitar
+# isso -- não é garantido (o agendamento do GitHub Actions pode atrasar
+# um pouco em horários de pico), mas funciona na maior parte do tempo.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Visitar o site
+        run: curl -sf --max-time 60 https://servico-cidade.onrender.com/ > /dev/null
