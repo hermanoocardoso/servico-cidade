@@ -1,4 +1,8 @@
-# Serviço na Cidade — MVP
+# SocorreAqui — MVP
+
+> Nome anterior do projeto: "Serviço na Cidade" (a pasta/repositório no
+> disco e no GitHub continua se chamando `servico-cidade` por enquanto —
+> só o nome de marca visível pro usuário mudou).
 
 Esqueleto funcional do app de catálogo de profissionais autônomos:
 cadastro de profissional, cadastro de cliente, catálogo com busca e
@@ -132,8 +136,9 @@ servico-cidade/
 
 - **Categorias**: edite a lista `CATEGORIAS_PADRAO` em `app/seed.py`
   para bater com o que faz sentido na sua cidade
-- **Nome/marca**: troque "Serviço na Cidade" em `app/templates/base.html`
-  pelo nome que você escolher pro app
+- **Nome/marca**: já está como "SocorreAqui" em `app/templates/base.html`,
+  `landing.html` e `email_utils.py` — troque nesses arquivos se decidir
+  mudar de novo
 - **SECRET_KEY**: troque o valor no `.env` por um texto aleatório antes
   de colocar no ar publicamente (essa chave protege o login das pessoas)
 - **Banco de dados**: por padrão usa SQLite (um arquivo `servico_cidade.db`

@@ -32,7 +32,7 @@ EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # Cria as tabelas automaticamente se ainda não existirem
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Serviço na Cidade")
+app = FastAPI(title="SocorreAqui")
 
 # Chave usada para assinar o cookie de sessão. Em produção, defina a
 # variável de ambiente SECRET_KEY com um valor aleatório e secreto.

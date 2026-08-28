@@ -65,8 +65,8 @@ def enviar_email_confirmacao(destinatario: str, nome: str, link_confirmacao: str
     primeiro_nome = nome.split(" ")[0]
     corpo = f"""
     <p>Oi, {primeiro_nome}!</p>
-    <p>Confirme seu cadastro no <strong>Serviço na Cidade</strong> clicando no link abaixo:</p>
+    <p>Confirme seu cadastro no <strong>SocorreAqui</strong> clicando no link abaixo:</p>
     <p><a href="{link_confirmacao}">{link_confirmacao}</a></p>
     <p style="color:#888;font-size:13px;">Se você não pediu esse cadastro, pode ignorar este e-mail.</p>
     """
-    enviar_email(destinatario, "Confirme seu cadastro — Serviço na Cidade", corpo)
+    enviar_email(destinatario, "Confirme seu cadastro — SocorreAqui", corpo)
