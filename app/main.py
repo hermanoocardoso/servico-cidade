@@ -55,6 +55,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
     CSS_VERSION = hashlib.md5(_f.read()).hexdigest()[:8]
 templates.env.globals["css_version"] = CSS_VERSION
+templates.env.globals["ano_atual"] = datetime.now().year
 
 # Formatos de foto aceitos (chave = content-type enviado pelo navegador).
 # Usamos a extensão daqui em vez de confiar no nome do arquivo enviado.
@@ -171,6 +172,22 @@ GRUPO_EMOJIS = {
 }
 templates.env.globals["grupo_emoji"] = lambda nome: GRUPO_EMOJIS.get(nome, "🔧")
 
+# Categorias mostradas em destaque na home de quem não está logado —
+# curadoria manual das mais buscadas, pra não sobrecarregar a tela
+# com as ~50 categorias inteiras.
+CATEGORIAS_DESTAQUE_LANDING = [
+    "Eletricista",
+    "Mecânico/Oficina",
+    "Diarista / Faxina",
+    "Manicure",
+    "Encanador",
+    "Informática & Tecnologia",
+    "Pedreiro / Reformas",
+    "Ar-condicionado / Refrigeração",
+    "Conserto de celular",
+    "Cabeleireiro",
+]
+
 
 # ---------------------------------------------------------------------------
 # Catálogo (página inicial)
@@ -187,7 +204,20 @@ def catalogo(
     usuario=Depends(auth.usuario_logado),
 ):
     if not usuario:
-        return templates.TemplateResponse("landing.html", {"request": request})
+        categorias_destaque = (
+            db.query(models.Category)
+            .filter(models.Category.nome.in_(CATEGORIAS_DESTAQUE_LANDING))
+            .all()
+        )
+        categorias_destaque.sort(
+            key=lambda c: CATEGORIAS_DESTAQUE_LANDING.index(c.nome)
+            if c.nome in CATEGORIAS_DESTAQUE_LANDING
+            else len(CATEGORIAS_DESTAQUE_LANDING)
+        )
+        return templates.TemplateResponse(
+            "landing.html",
+            {"request": request, "categorias_destaque": categorias_destaque},
+        )
 
     # O <select> de categoria manda "" quando é "Todas as categorias" —
     # não dá pra tipar o parâmetro como int direto, senão o FastAPI

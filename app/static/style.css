@@ -326,18 +326,32 @@ a.btn:visited {
     border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* --- Assinatura no rodapé --- */
-.site-footer {
-    color: var(--cor-texto-suave);
-    font-size: 0.82rem;
+/* --- Rodapé --- */
+.site-footer-full {
+    background: #fff;
     border-top: 1px solid #E3E6EF;
+    margin-top: 3rem;
+}
+.footer-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+.site-footer-full ul li {
+    margin-bottom: 0.4rem;
+}
+.site-footer-full ul a {
+    color: var(--cor-texto-suave);
+    text-decoration: none;
+}
+.site-footer-full ul a:hover {
+    color: var(--cor-primaria);
 }
 .site-footer-logo {
     width: 20px;
     height: 20px;
     object-fit: contain;
     vertical-align: middle;
-    margin-right: 0.4rem;
     border-radius: 4px;
 }
 
@@ -421,13 +435,125 @@ a.btn:visited {
     text-align: left;
 }
 
-.trust-strip {
+/* Barra de busca em destaque no hero — funciona como "porta de entrada"
+   pro cadastro, já que navegar o catálogo de verdade exige login. */
+.hero-search {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 50px;
+    padding: 0.4rem 0.4rem 0.4rem 1.25rem;
+    max-width: 560px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.hero-search-icon {
+    font-size: 1.1rem;
+    margin-right: 0.6rem;
+    color: var(--cor-texto-suave);
+}
+.hero-search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    font-size: 0.95rem;
+    padding: 0.5rem 0;
+    color: var(--cor-texto);
+    background: transparent;
+}
+.hero-search-input:focus-visible {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: 2px;
+}
+.hero-search-btn {
+    border-radius: 50px;
+    white-space: nowrap;
+    padding: 0.55rem 1.25rem;
+}
+@media (max-width: 575px) {
+    .hero-search {
+        flex-wrap: wrap;
+        border-radius: 20px;
+        padding: 0.75rem;
+    }
+    .hero-search-input { flex-basis: 100%; order: 1; margin-bottom: 0.5rem; }
+    .hero-search-btn { order: 2; width: 100%; }
+}
+
+/* Cards de categoria em destaque na home de visitante */
+.categoria-destaque-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--cor-texto);
+    text-align: center;
     background: #fff;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
-    padding: 1.5rem 0.5rem;
-    margin-left: 0;
-    margin-right: 0;
+    padding: 1rem 0.5rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.categoria-destaque-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-hover);
+}
+
+/* Card ilustrativo de "como fica depois de logar" — marcado como prévia
+   pra nunca passar a impressão de ser um profissional real. */
+.preview-card {
+    position: relative;
+    opacity: 0.92;
+}
+.preview-badge {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    z-index: 2;
+    background: rgba(31, 35, 51, 0.75);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+}
+
+/* Painel de destaque pra atrair profissionais — fundo escuro, separado
+   visualmente do resto da página em tons claros. */
+.pro-cta-panel {
+    background: linear-gradient(135deg, var(--cor-texto) 0%, #343a52 100%);
+    color: #fff;
+    border-radius: 24px;
+    padding: 3rem 2rem;
+}
+.pro-cta-panel p {
+    color: rgba(255, 255, 255, 0.85);
+}
+.pro-cta-checklist li {
+    padding: 0.25rem 0;
+    color: rgba(255, 255, 255, 0.95);
+}
+.pro-cta-icon {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    margin: 0 auto;
+}
+
+/* Card de item de "Por que usar o SocorreAqui?" */
+.diferencial-card {
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    height: 100%;
 }
 
 /* Círculo numerado do "Como funciona" na tela de boas-vindas */

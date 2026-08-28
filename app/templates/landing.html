@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titulo %}Bem-vindo{% endblock %}
+{% block titulo %}SocorreAqui{% endblock %}
 
 {% block conteudo %}
 <div class="landing-hero mb-5">
@@ -12,15 +12,26 @@
         <span class="hero-bubble b6">🧹</span>
     </div>
     <div class="landing-hero-content">
-        <h1 class="display-6 fw-bold mb-3">Precisa de um profissional de confiança perto de você?</h1>
+        <h1 class="display-6 fw-bold mb-3">Encontre o profissional certo perto de você.</h1>
         <p class="lead mb-4">
-            Eletricista, diarista, manicure, mecânico e muito mais — sem
-            intermediário, sem taxa, direto no WhatsApp.
+            Eletricistas, diaristas, manicures, mecânicos, técnicos e muito mais.
+            Converse direto pelo WhatsApp, sem intermediário e sem taxa.
         </p>
-        <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="/cadastro?tipo=cliente" class="btn btn-light btn-lg fw-semibold">🙋 Quero encontrar um profissional</a>
-            <a href="/cadastro?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">🛠️ Quero oferecer meus serviços</a>
-        </div>
+
+        <form action="/cadastro" method="get" class="hero-search mx-auto mb-3">
+            <input type="hidden" name="tipo" value="cliente">
+            <span class="hero-search-icon" aria-hidden="true">🔎</span>
+            <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
+            <input type="text" id="hero-busca" name="busca" class="hero-search-input"
+                   placeholder="O que você precisa? Ex: eletricista, diarista, manicure...">
+            <button type="submit" class="btn btn-primary hero-search-btn">Encontrar profissional</button>
+        </form>
+
+        <p class="mb-0">
+            <a href="/cadastro?tipo=profissional" class="btn btn-outline-light btn-sm">
+                🛠️ Sou profissional — quero oferecer meus serviços
+            </a>
+        </p>
         <p class="mt-3 mb-0 small">
             Já tem conta?
             <a href="/login" class="btn btn-outline-light btn-sm ms-1">👤 Entrar</a>
@@ -28,45 +39,67 @@
     </div>
 </div>
 
-<div class="row justify-content-center g-4 mb-5">
-    <div class="col-md-4">
-        <div class="card p-4 h-100 text-center d-flex flex-column">
-            <div class="landing-role-icon mx-auto mb-3">🙋</div>
-            <h4>Sou cliente</h4>
-            <p class="text-muted flex-grow-1">
-                Encontre aqui o profissional que você precisa.
-            </p>
-            <a href="/cadastro?tipo=cliente" class="btn btn-primary">Criar conta de cliente</a>
-        </div>
+<h2 id="categorias" class="h4 fw-semibold text-center mb-1">O que você precisa hoje?</h2>
+<p class="text-muted text-center mb-4">Escolha uma categoria pra começar a buscar.</p>
+<div class="row row-cols-3 row-cols-md-5 g-3 mb-5">
+    {% for c in categorias_destaque %}
+    <div class="col">
+        <a href="/cadastro?tipo=cliente&categoria={{ c.id }}" class="categoria-destaque-card">
+            <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
+            <span class="category-label">{{ c.nome }}</span>
+        </a>
     </div>
-    <div class="col-md-4">
-        <div class="card p-4 h-100 text-center d-flex flex-column">
-            <div class="landing-role-icon mx-auto mb-3">🛠️</div>
-            <h4>Sou profissional</h4>
-            <p class="text-muted flex-grow-1">
-                Quero me cadastrar de graça e aparecer pra quem procura meu serviço.
-            </p>
-            <a href="/cadastro?tipo=profissional" class="btn btn-primary">Criar conta de profissional</a>
-        </div>
+    {% endfor %}
+    <div class="col">
+        <a href="/cadastro?tipo=cliente" class="categoria-destaque-card">
+            <span class="category-icon">➕</span>
+            <span class="category-label">Ver todas</span>
+        </a>
     </div>
 </div>
 
-<h3 class="h4 fw-semibold text-center mb-4">Como funciona?</h3>
+<h2 class="h4 fw-semibold text-center mb-1">Assim que você entra, é isso que você vê</h2>
+<p class="text-muted text-center mb-4">Perfis de profissionais da sua região, com avaliação de outros clientes.</p>
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+    {% for exemplo in [
+        {"categoria": "Eletricista", "emoji": "⚡"},
+        {"categoria": "Diarista", "emoji": "🧹"},
+        {"categoria": "Cabeleireiro", "emoji": "💇"},
+    ] %}
+    <div class="col">
+        <div class="card h-100 card-prof preview-card">
+            <span class="preview-badge">Prévia</span>
+            <div class="card-prof-foto sem-foto d-flex align-items-center justify-content-center fs-1">
+                {{ exemplo.emoji }}
+            </div>
+            <div class="card-body p-3">
+                <h6 class="card-prof-nome mb-1">{{ exemplo.categoria }}</h6>
+                <span class="badge bg-secondary mb-1">📍 Macaé e região</span>
+                <p class="small text-muted mb-2">⭐ Avaliado por outros clientes</p>
+                <span class="btn btn-outline-primary btn-sm w-100 disabled">Ver perfil</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<h2 id="como-funciona" class="h4 fw-semibold text-center mb-1">É simples. Você encontra, escolhe e chama.</h2>
+<p class="text-muted text-center mb-4">Veja como funciona pra cada lado.</p>
 <div class="row justify-content-center g-4 mb-5">
     <div class="col-md-5">
         <div class="como-funciona-card">
             <h5 class="fw-bold mb-3">🙋 Pra quem quer contratar</h5>
             <div class="d-flex align-items-start gap-3 mb-3">
                 <span class="step-num">1</span>
-                <div><strong>Busque</strong><br><span class="text-muted small">Filtre por categoria, bairro ou nome pra achar quem você precisa.</span></div>
+                <div><strong>Busque</strong><br><span class="text-muted small">Digite o serviço que você precisa ou filtre por categoria e bairro.</span></div>
             </div>
             <div class="d-flex align-items-start gap-3 mb-3">
                 <span class="step-num">2</span>
-                <div><strong>Veja o perfil</strong><br><span class="text-muted small">Confira avaliações de outros clientes antes de decidir.</span></div>
+                <div><strong>Escolha</strong><br><span class="text-muted small">Compare perfis e avaliações de outros clientes antes de decidir.</span></div>
             </div>
             <div class="d-flex align-items-start gap-3">
                 <span class="step-num">3</span>
-                <div><strong>Fale direto no WhatsApp</strong><br><span class="text-muted small">Sem intermediário, sem taxa — você combina tudo direto com a pessoa.</span></div>
+                <div><strong>Converse</strong><br><span class="text-muted small">Fale direto no WhatsApp — sem intermediário, sem taxa.</span></div>
             </div>
         </div>
     </div>
@@ -89,22 +122,79 @@
     </div>
 </div>
 
-<div class="trust-strip row row-cols-2 row-cols-md-4 g-4 justify-content-center mb-4">
-    <div class="col text-center">
-        <div class="category-icon mx-auto mb-2">🆓</div>
-        <div class="small fw-semibold">100% grátis</div>
+<div class="pro-cta-panel mb-5">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <h2 class="h3 fw-bold mb-3">Você presta serviços? Encontre novos clientes.</h2>
+            <p class="mb-4">
+                Cadastre seu perfil gratuitamente e apareça para pessoas que estão
+                procurando exatamente pelo serviço que você oferece.
+            </p>
+            <ul class="list-unstyled pro-cta-checklist mb-4">
+                <li>✓ Cadastro gratuito</li>
+                <li>✓ Mais visibilidade</li>
+                <li>✓ Clientes da sua região</li>
+                <li>✓ Contato direto pelo WhatsApp</li>
+                <li>✓ Sem intermediários</li>
+            </ul>
+            <a href="/cadastro?tipo=profissional" class="btn btn-light btn-lg fw-semibold">
+                🛠️ Cadastrar meu serviço gratuitamente
+            </a>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <div class="pro-cta-icon">🛠️</div>
+        </div>
     </div>
-    <div class="col text-center">
-        <div class="category-icon mx-auto mb-2">📍</div>
-        <div class="small fw-semibold">Perto de você</div>
+</div>
+
+<h2 class="h4 fw-semibold text-center mb-4">Por que usar o SocorreAqui?</h2>
+<div class="row row-cols-2 row-cols-md-3 g-4 mb-5">
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">💰</div>
+            <div class="small fw-semibold">Sem taxa pra encontrar profissionais</div>
+        </div>
     </div>
-    <div class="col text-center">
-        <div class="category-icon mx-auto mb-2">💬</div>
-        <div class="small fw-semibold">Direto no WhatsApp</div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">📍</div>
+            <div class="small fw-semibold">Profissionais da sua região</div>
+        </div>
     </div>
-    <div class="col text-center">
-        <div class="category-icon mx-auto mb-2">⭐</div>
-        <div class="small fw-semibold">Avaliado por quem já contratou</div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">💬</div>
+            <div class="small fw-semibold">Contato direto pelo WhatsApp</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">⭐</div>
+            <div class="small fw-semibold">Avaliações de clientes</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">🔎</div>
+            <div class="small fw-semibold">Busca simples e rápida</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">🛡️</div>
+            <div class="small fw-semibold">Mais confiança pra contratar</div>
+        </div>
+    </div>
+</div>
+
+<div class="landing-hero mb-4">
+    <div class="landing-hero-content">
+        <h2 class="h3 fw-bold mb-3">Precisa de ajuda? Encontre quem pode resolver.</h2>
+        <p class="lead mb-4">Pesquise agora por um profissional perto de você.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="/cadastro?tipo=cliente" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
+            <a href="/cadastro?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
+        </div>
     </div>
 </div>
 {% endblock %}
