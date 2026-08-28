@@ -164,7 +164,8 @@ GRUPO_EMOJIS = {
     "Carros e Motos": "🚗",
     "Tecnologia": "💻",
     "Saúde e Família": "🩺",
-    "Beleza e Eventos": "🎉",
+    "Beleza e Autocuidado": "💅",
+    "Eventos": "🎉",
     "Aulas e Consultoria": "📚",
     "Transporte": "🚚",
 }
