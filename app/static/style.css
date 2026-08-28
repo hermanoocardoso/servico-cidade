@@ -326,6 +326,109 @@ a.btn:visited {
     border-color: rgba(255, 255, 255, 0.5);
 }
 
+/* --- Hero da landing page (visitante não logado) --- */
+.landing-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    background: linear-gradient(135deg, var(--cor-primaria) 0%, #7B5CFA 100%);
+    padding: 3.5rem 1.5rem;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(var(--cor-primaria-rgb), 0.28);
+}
+.landing-hero .lead {
+    color: rgba(255, 255, 255, 0.92);
+}
+.landing-hero a.link-light {
+    color: #fff;
+    text-decoration: underline;
+}
+.landing-hero .btn-light {
+    color: var(--cor-primaria-escura);
+}
+.landing-hero .btn-outline-light:hover {
+    color: var(--cor-primaria-escura);
+}
+.landing-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.18);
+    padding: 0.35rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    margin-bottom: 1.25rem;
+}
+.landing-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* Bolhas decorativas flutuando no fundo do hero — efeito "colagem"
+   sem depender de fotos reais de profissionais. */
+.landing-hero-decor {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+.hero-bubble {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+.hero-bubble.b1 { top: 8%; left: 6%; transform: rotate(-8deg); }
+.hero-bubble.b2 { top: 64%; left: 10%; transform: rotate(6deg); width: 42px; height: 42px; font-size: 1.2rem; }
+.hero-bubble.b3 { top: 12%; right: 8%; transform: rotate(10deg); }
+.hero-bubble.b4 { top: 66%; right: 12%; transform: rotate(-6deg); width: 46px; height: 46px; font-size: 1.3rem; }
+.hero-bubble.b5 { top: 40%; left: 2%; transform: rotate(4deg); width: 38px; height: 38px; font-size: 1.1rem; }
+.hero-bubble.b6 { top: 42%; right: 3%; transform: rotate(-4deg); width: 38px; height: 38px; font-size: 1.1rem; }
+
+@media (max-width: 767px) {
+    .hero-bubble { display: none; }
+    .landing-hero { padding: 2.5rem 1rem; border-radius: 18px; }
+}
+
+/* Ícone redondo nos cards "Sou cliente" / "Sou profissional" da landing */
+.landing-role-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #EEF1FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+/* Painel de cada lado do "Como funciona" na landing */
+.como-funciona-card {
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.75rem;
+    height: 100%;
+    text-align: left;
+}
+
+.trust-strip {
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.5rem 0.5rem;
+    margin-left: 0;
+    margin-right: 0;
+}
+
 /* Círculo numerado do "Como funciona" na tela de boas-vindas */
 .step-num {
     flex: 0 0 auto;
