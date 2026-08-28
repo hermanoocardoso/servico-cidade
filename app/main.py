@@ -26,11 +26,16 @@ from sqlalchemy import or_, func
 from app.database import Base, engine, get_db
 from app import models, auth, email_utils, storage
 from app.oauth import oauth, google_oauth_habilitado
+from app.seed import rodar_seed
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# Cria as tabelas automaticamente se ainda não existirem
+# Cria as tabelas automaticamente se ainda não existirem, e mantém as
+# categorias padrão (nome + grupo) sempre alinhadas com CATEGORIAS_PADRAO —
+# assim um novo deploy já atualiza o catálogo de categorias sozinho, sem
+# precisar rodar "python -m app.seed" manualmente em produção.
 Base.metadata.create_all(bind=engine)
+rodar_seed()
 
 app = FastAPI(title="SocorreAqui")
 
