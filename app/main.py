@@ -114,6 +114,17 @@ CATEGORIA_EMOJIS = {
 }
 templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
 
+# Ícone de cada grupo amplo (usado no menu de categorias, estilo "mega menu").
+GRUPO_EMOJIS = {
+    "Casa e Reformas": "🏠",
+    "Limpeza e Manutenção": "🧹",
+    "Carros e Tecnologia": "💻",
+    "Saúde e Família": "🩺",
+    "Beleza e Eventos": "🎉",
+    "Transporte": "🚚",
+}
+templates.env.globals["grupo_emoji"] = lambda nome: GRUPO_EMOJIS.get(nome, "🔧")
+
 
 # ---------------------------------------------------------------------------
 # Catálogo (página inicial)
@@ -123,6 +134,7 @@ templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nom
 def catalogo(
     request: Request,
     categoria: str | None = None,
+    grupo: str | None = None,
     cidade: str | None = None,
     busca: str | None = None,
     db: Session = Depends(get_db),
@@ -146,6 +158,8 @@ def catalogo(
 
     if categoria_id:
         query = query.filter(models.ProfessionalProfile.categorias.any(models.Category.id == categoria_id))
+    elif grupo:
+        query = query.filter(models.ProfessionalProfile.categorias.any(models.Category.grupo == grupo))
 
     if cidade:
         query = query.filter(models.ProfessionalProfile.cidade.ilike(f"%{cidade}%"))
@@ -167,7 +181,7 @@ def catalogo(
     # primeiro — assim é mais fácil achar quem atende perto de você.
     profissionais_por_bairro = None
     bairro_usuario = ""
-    if not categoria_id and not cidade and not busca:
+    if not categoria_id and not grupo and not cidade and not busca:
         grupos = {}
         for p in profissionais:
             chave = (p.bairro or "").strip() or "Bairro não informado"
@@ -188,6 +202,15 @@ def catalogo(
 
     categorias = db.query(models.Category).order_by(models.Category.nome).all()
 
+    # Organiza as categorias em grupos amplos pro menu (estilo "mega menu"):
+    # segue a ordem de GRUPO_EMOJIS, e qualquer categoria sem grupo definido
+    # (ex: criada via "Outro" no perfil) cai num grupo "Outros" no final.
+    por_grupo = {}
+    for c in categorias:
+        por_grupo.setdefault(c.grupo or "Outros", []).append(c)
+    ordem_grupos = list(GRUPO_EMOJIS.keys()) + [g for g in por_grupo if g not in GRUPO_EMOJIS]
+    categorias_por_grupo = [(g, por_grupo[g]) for g in ordem_grupos if g in por_grupo]
+
     return templates.TemplateResponse(
         "index.html",
         {
@@ -197,7 +220,9 @@ def catalogo(
             "profissionais_por_bairro": profissionais_por_bairro,
             "bairro_usuario": bairro_usuario,
             "categorias": categorias,
+            "categorias_por_grupo": categorias_por_grupo,
             "filtro_categoria": categoria_id,
+            "filtro_grupo": grupo or "",
             "filtro_cidade": cidade or "",
             "filtro_busca": busca or "",
             "eh_admin_usuario": eh_admin(usuario),

@@ -66,6 +66,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(80), nullable=False, unique=True)
+    grupo = Column(String(80), nullable=True)  # agrupamento amplo pro menu (ex: "Casa e Reformas")
 
     profissionais = relationship(
         "ProfessionalProfile", secondary=professional_categories, back_populates="categorias"

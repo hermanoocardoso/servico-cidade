@@ -226,13 +226,17 @@ a.btn:visited {
     border: 1px solid #D7DDFF;
 }
 
-/* --- Fileira de categorias com ícone (estilo GetNinjas) --- */
-.category-grid {
+/* --- Menu de categorias com ícone + painel no hover (estilo GetNinjas) --- */
+.mega-menu {
     display: flex;
     flex-wrap: wrap;
     gap: 1.1rem 0.5rem;
+    position: relative;
 }
-.category-tile {
+.mega-item-wrap {
+    position: relative;
+}
+.mega-item {
     flex: 0 0 auto;
     width: 82px;
     display: flex;
@@ -254,7 +258,7 @@ a.btn:visited {
     font-size: 1.5rem;
     transition: background 0.15s ease, transform 0.15s ease;
 }
-.category-tile:hover .category-icon {
+.mega-item:hover .category-icon {
     transform: translateY(-3px);
 }
 .category-label {
@@ -262,10 +266,57 @@ a.btn:visited {
     font-weight: 500;
     line-height: 1.2;
 }
-.category-tile.active .category-icon {
+.mega-item.active .category-icon {
     background: var(--cor-primaria);
 }
-.category-tile.active .category-label {
+.mega-item.active .category-label {
+    color: var(--cor-primaria);
+    font-weight: 600;
+}
+
+/* Painel que abre ao passar o mouse (ou focar via teclado) num grupo.
+   Em telas de toque não existe ":hover" de verdade, então o clique no
+   ícone simplesmente navega direto pro grupo — o painel é um extra
+   pra quem usa mouse. */
+.mega-panel {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translate(-50%, 6px);
+    background: #fff;
+    border: 1px solid #EEF0F7;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-hover);
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    max-width: 280px;
+    z-index: 20;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.mega-item-wrap:hover .mega-panel,
+.mega-item-wrap:focus-within .mega-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 2px);
+}
+.mega-panel-link {
+    display: block;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    color: var(--cor-texto);
+    text-decoration: none;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+.mega-panel-link:hover {
+    background: #EEF1FF;
+    color: var(--cor-primaria);
+}
+.mega-panel-link.active {
     color: var(--cor-primaria);
     font-weight: 600;
 }
