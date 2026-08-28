@@ -355,10 +355,6 @@ a.btn:visited {
 .landing-hero .lead {
     color: rgba(255, 255, 255, 0.92);
 }
-.landing-hero a.link-light {
-    color: #fff;
-    text-decoration: underline;
-}
 .landing-hero .btn-light {
     color: var(--cor-primaria-escura);
 }
