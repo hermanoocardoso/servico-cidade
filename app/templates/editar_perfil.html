@@ -21,8 +21,17 @@
 
 <form method="post" action="{{ form_action or '/profissional/perfil/editar' }}" enctype="multipart/form-data">
     <div class="mb-3">
-        <label class="form-label">Foto (opcional)</label>
+        <label class="form-label">Foto</label>
+        {% if perfil and perfil.foto_url %}
+        <div class="mb-2">
+            <img src="{{ perfil.foto_url }}" alt="Foto atual" class="foto-atual-thumb">
+            <span class="text-muted small ms-2">Foto atual — envie outra pra trocar.</span>
+        </div>
         <input type="file" name="foto" class="form-control" accept="image/*">
+        {% else %}
+        <input type="file" name="foto" class="form-control" accept="image/*" required>
+        <div class="form-text">Uma foto sua (ou do seu trabalho) é obrigatória — ajuda a gerar confiança.</div>
+        {% endif %}
     </div>
 
     <div class="mb-3">
@@ -116,7 +125,7 @@
         </div>
         <div class="col-md-6 mb-3">
             <label class="form-label">Bairro / região que atende</label>
-            <input type="text" name="bairro" class="form-control" value="{{ (perfil.bairro or '') if perfil else '' }}">
+            <input type="text" name="bairro" class="form-control" value="{{ (perfil.bairro or '') if perfil else '' }}" required>
         </div>
     </div>
 
@@ -130,9 +139,12 @@
         </div>
     </div>
 
+    {% set dono_perfil = admin_editando or usuario %}
     <div class="mb-3">
-        <label class="form-label">WhatsApp para contato (se diferente do telefone de cadastro)</label>
-        <input type="text" name="whatsapp" class="form-control" placeholder="(22) 99999-9999" value="{{ (perfil.whatsapp or '') if perfil else '' }}">
+        <label class="form-label">WhatsApp para contato</label>
+        <input type="text" name="whatsapp" class="form-control" placeholder="(22) 99999-9999"
+               value="{{ (perfil.whatsapp or dono_perfil.telefone or '') if perfil else (dono_perfil.telefone or '') }}" required>
+        <div class="form-text">Esse é o número que aparece no botão do WhatsApp do seu perfil.</div>
     </div>
 
     <div class="mb-3">

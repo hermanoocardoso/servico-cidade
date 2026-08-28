@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.database import Base, engine, get_db
-from app import models, auth, email_utils, storage
+from app import models, auth, storage
 from app.oauth import oauth, google_oauth_habilitado
 from app.seed import rodar_seed
 
@@ -310,12 +310,6 @@ def catalogo(
 # Cadastro / Login / Logout
 # ---------------------------------------------------------------------------
 
-def _enviar_confirmacao(request: Request, usuario: "models.User"):
-    token = auth.gerar_token_confirmacao(usuario.email)
-    link = str(request.url_for("confirmar_email", token=token))
-    email_utils.enviar_email_confirmacao(usuario.email, usuario.nome, link)
-
-
 @app.get("/cadastro")
 def form_cadastro(request: Request, tipo: str = "cliente"):
     return templates.TemplateResponse(
@@ -367,7 +361,7 @@ def cadastrar(
         tipo=tipo,
         cidade=cidade.strip() or None,
         bairro=bairro.strip() or None,
-        email_verificado=False,
+        email_verificado=True,
     )
     db.add(novo_usuario)
     db.commit()
@@ -378,49 +372,11 @@ def cadastrar(
         db.add(perfil)
         db.commit()
 
-    _enviar_confirmacao(request, novo_usuario)
+    request.session["user_id"] = novo_usuario.id
 
-    return templates.TemplateResponse(
-        "confirme_seu_email.html", {"request": request, "email": novo_usuario.email, "erro": None},
-    )
-
-
-@app.get("/confirmar-email/{token}")
-def confirmar_email(token: str, request: Request, db: Session = Depends(get_db)):
-    email = auth.verificar_token_confirmacao(token)
-    if not email:
-        return templates.TemplateResponse(
-            "confirme_seu_email.html",
-            {
-                "request": request, "email": None,
-                "erro": "Link inválido ou expirado. Peça um novo e-mail de confirmação abaixo.",
-            },
-        )
-
-    usuario = db.query(models.User).filter(models.User.email == email).first()
-    if not usuario:
-        return RedirectResponse("/cadastro", status_code=303)
-
-    usuario.email_verificado = True
-    db.commit()
-    request.session["user_id"] = usuario.id
-
-    if usuario.tipo == "profissional":
+    if tipo == "profissional":
         return RedirectResponse("/profissional/perfil/editar", status_code=303)
     return RedirectResponse("/", status_code=303)
-
-
-@app.post("/reenviar-confirmacao")
-def reenviar_confirmacao(request: Request, email: str = Form(...), db: Session = Depends(get_db)):
-    email = email.strip().lower()
-    usuario = db.query(models.User).filter(models.User.email == email).first()
-    if usuario and not usuario.email_verificado:
-        _enviar_confirmacao(request, usuario)
-    # Mostra a mesma mensagem mesmo se o e-mail não existir, pra não revelar
-    # quais e-mails estão cadastrados.
-    return templates.TemplateResponse(
-        "confirme_seu_email.html", {"request": request, "email": email, "erro": None},
-    )
 
 
 @app.get("/login")
@@ -454,15 +410,6 @@ def login(
 
     if not usuario.ativo:
         return erro("Essa conta foi bloqueada. Entre em contato com o suporte.")
-
-    if not usuario.email_verificado:
-        return templates.TemplateResponse(
-            "confirme_seu_email.html",
-            {
-                "request": request, "email": usuario.email,
-                "erro": "Confirme seu e-mail antes de entrar — clique no link que te enviamos, ou peça um novo abaixo.",
-            },
-        )
 
     request.session["user_id"] = usuario.id
     return RedirectResponse("/", status_code=303)
@@ -839,9 +786,25 @@ def _aplicar_dados_perfil(
     """
     Aplica os campos do formulário de editar perfil (usado tanto pelo próprio
     profissional quanto pelo admin editando em nome dele). Retorna uma
-    mensagem de erro (str) se a foto for inválida, ou None se salvou certo.
+    mensagem de erro (str) se algum campo obrigatório estiver faltando ou a
+    foto for inválida, ou None se salvou certo.
     """
-    if foto and foto.filename:
+    cidade = cidade.strip()
+    bairro = bairro.strip()
+    whatsapp = whatsapp.strip()
+
+    if not cidade:
+        return "Cidade é obrigatória."
+    if not bairro:
+        return "Bairro é obrigatório."
+    if not whatsapp:
+        return "WhatsApp para contato é obrigatório."
+
+    tem_foto_nova = bool(foto and foto.filename)
+    if not tem_foto_nova and not perfil.foto_url:
+        return "Foto é obrigatória."
+
+    if tem_foto_nova:
         if foto.content_type not in EXTENSOES_FOTO_PERMITIDAS:
             return "Formato de foto não suportado. Envie uma imagem JPG, PNG ou WEBP."
         conteudo = foto.file.read()
@@ -851,13 +814,13 @@ def _aplicar_dados_perfil(
         nome_arquivo = f"profissional_{perfil.usuario_id}{extensao}"
         perfil.foto_url = storage.salvar_foto(conteudo, nome_arquivo, foto.content_type)
 
-    perfil.cidade = cidade.strip()
-    perfil.bairro = bairro.strip()
+    perfil.cidade = cidade
+    perfil.bairro = bairro
     perfil.endereco = endereco.strip()
     perfil.atende_domicilio = bool(atende_domicilio)
     perfil.descricao = descricao.strip()
     perfil.valor_mao_de_obra = valor_mao_de_obra.strip()
-    perfil.whatsapp = whatsapp.strip()
+    perfil.whatsapp = whatsapp
 
     # Campos de médico — só têm efeito visível se a categoria "Médico"
     # também estiver marcada (ver property `eh_medico`), mas salvamos o

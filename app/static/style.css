@@ -154,6 +154,13 @@ a.btn:visited {
     padding: 1rem 1.25rem;
 }
 
+.foto-atual-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
 /* Placeholder de "sem foto" */
 .sem-foto {
     background-color: #EEF0F7;
@@ -500,26 +507,6 @@ a.btn:visited {
 .categoria-destaque-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--sombra-hover);
-}
-
-/* Card ilustrativo de "como fica depois de logar" — marcado como prévia
-   pra nunca passar a impressão de ser um profissional real. */
-.preview-card {
-    position: relative;
-    opacity: 0.92;
-}
-.preview-badge {
-    position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
-    z-index: 2;
-    background: rgba(31, 35, 51, 0.75);
-    color: #fff;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    padding: 0.2rem 0.55rem;
-    border-radius: 20px;
 }
 
 /* Painel de destaque pra atrair profissionais — fundo escuro, separado
