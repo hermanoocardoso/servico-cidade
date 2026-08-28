@@ -19,7 +19,7 @@ CATEGORIAS_PADRAO = [
     "Pedreiro / Reformas",
     "Pintor",
     "Marido de aluguel",
-    "Mecânico",
+    "Mecânico/Oficina",
     "Chaveiro",
     "Ar-condicionado / Refrigeração",
     "Jardinagem",
@@ -34,6 +34,7 @@ CATEGORIAS_PADRAO = [
     "Serralheiro",
     "Piscineiro",
     "Médico",
+    "Babá",
 ]
 
 
