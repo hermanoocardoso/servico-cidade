@@ -49,22 +49,22 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
         {% if usuario.tipo == "profissional" %}
-            <a href="/profissional/perfil/editar" class="btn-chip">🛠️ Meu perfil</a>
+            <a href="/profissional/perfil/editar" class="btn-chip">Meu perfil</a>
             {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
-                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn-chip">👀 Perfil público</a>
+                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn-chip">Perfil público</a>
             {% endif %}
         {% endif %}
-        <a href="/indicar" class="btn-chip">💡 Indicar</a>
-        <a href="/minha-localizacao" class="btn-chip">👤 Meus dados</a>
+        <a href="/indicar" class="btn-chip">Indicar</a>
+        <a href="/minha-localizacao" class="btn-chip">Meus dados</a>
         {% if eh_admin_usuario %}
-            <a href="/admin" class="btn-chip">⚙️ Admin</a>
+            <a href="/admin" class="btn-chip">Admin</a>
         {% endif %}
     </div>
 </div>
 
 <h2 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h2>
 
-<form method="get" action="/" class="row g-2 mb-3">
+<form method="get" action="/" class="row g-2 mb-2">
     <div class="col-md-4">
         <input type="text" name="busca" value="{{ filtro_busca }}" class="form-control" placeholder="Nome ou tipo de serviço...">
     </div>
@@ -77,12 +77,71 @@
         </select>
     </div>
     <div class="col-md-3">
-        <input type="text" name="cidade" value="{{ filtro_cidade }}" class="form-control" placeholder="Cidade / bairro">
+        <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" class="form-control" placeholder="Cidade / bairro">
     </div>
     <div class="col-md-2 d-grid">
         <button class="btn btn-primary" type="submit">Buscar</button>
     </div>
 </form>
+
+<div class="mb-3">
+    <button type="button" id="btnCheckin" class="btn-chip btn-chip-action">Fazer check-in aqui perto</button>
+    <span id="checkinStatus" class="text-muted small ms-2"></span>
+</div>
+
+<script>
+(function () {
+    var btn = document.getElementById("btnCheckin");
+    var status = document.getElementById("checkinStatus");
+    var inputCidade = document.getElementById("inputCidadeBusca");
+
+    btn.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+            status.textContent = "Seu navegador não suporta localização automática.";
+            return;
+        }
+        btn.disabled = true;
+        status.textContent = "Buscando sua localização...";
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                var lat = pos.coords.latitude, lon = pos.coords.longitude;
+                status.textContent = "Identificando o bairro...";
+                fetch(
+                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat +
+                    "&lon=" + lon + "&zoom=16&addressdetails=1&accept-language=pt-BR"
+                )
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var end = data.address || {};
+                        var local = end.suburb || end.neighbourhood || end.city_district || end.quarter
+                            || end.city || end.town || end.municipality || "";
+                        if (local) {
+                            inputCidade.value = local;
+                            status.textContent = "";
+                            window.location.href = "/?cidade=" + encodeURIComponent(local);
+                        } else {
+                            btn.disabled = false;
+                            status.textContent = "Não consegui identificar seu bairro. Digite manualmente acima.";
+                        }
+                    })
+                    .catch(function () {
+                        btn.disabled = false;
+                        status.textContent = "Não consegui identificar seu bairro agora. Digite manualmente acima.";
+                    });
+            },
+            function (erro) {
+                btn.disabled = false;
+                if (erro.code === erro.PERMISSION_DENIED) {
+                    status.textContent = "Você não permitiu o acesso à localização.";
+                } else {
+                    status.textContent = "Não consegui pegar sua localização agora.";
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+})();
+</script>
 
 <div class="mega-menu mb-4">
     <a href="/" class="mega-item {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
@@ -140,8 +199,8 @@
 {% endif %}
 
 <div class="text-center mt-5 pt-3 border-top small text-muted">
-    <span>🙋 É profissional autônomo? <a href="/cadastro">Cadastre-se de graça</a></span>
+    <span>É profissional autônomo? <a href="/cadastro">Cadastre-se de graça</a></span>
     <span class="mx-2">·</span>
-    <span>👋 Conhece alguém que devia estar aqui? <a href="/indicar">Indique</a></span>
+    <span>Conhece alguém que devia estar aqui? <a href="/indicar">Indique</a></span>
 </div>
 {% endblock %}

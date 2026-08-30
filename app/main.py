@@ -263,7 +263,12 @@ def catalogo(
         query = query.filter(models.ProfessionalProfile.categorias.any(models.Category.grupo == grupo))
 
     if cidade:
-        query = query.filter(models.ProfessionalProfile.cidade.ilike(f"%{cidade}%"))
+        # O campo aceita cidade OU bairro (o rótulo já diz "Cidade / bairro"),
+        # e é o mesmo campo usado pelo check-in por geolocalização.
+        query = query.filter(or_(
+            models.ProfessionalProfile.cidade.ilike(f"%{cidade}%"),
+            models.ProfessionalProfile.bairro.ilike(f"%{cidade}%"),
+        ))
 
     if busca:
         query = query.join(models.User).filter(
@@ -334,6 +339,14 @@ def catalogo(
 # ---------------------------------------------------------------------------
 # Cadastro / Login / Logout
 # ---------------------------------------------------------------------------
+
+@app.get("/comecar")
+def form_comecar(request: Request, tipo: str = "cliente"):
+    return templates.TemplateResponse(
+        "comecar.html",
+        {"request": request, "tipo": tipo if tipo in ("cliente", "profissional") else "cliente"},
+    )
+
 
 @app.get("/cadastro")
 def form_cadastro(request: Request, tipo: str = "cliente"):

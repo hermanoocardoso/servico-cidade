@@ -293,6 +293,20 @@ a.btn:visited {
     background: #DCE2FF;
     color: var(--cor-primaria-escura);
 }
+.btn-chip-action {
+    background: var(--cor-primaria);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+.btn-chip-action:hover {
+    background: var(--cor-primaria-escura);
+    color: #fff;
+}
+.btn-chip-action:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
 
 /* Quadrante de bairro no catálogo — separa visivelmente cada grupo */
 .secao-bairro {
@@ -614,6 +628,37 @@ a.btn:visited {
     padding: 1.5rem 1rem;
     text-align: center;
     height: 100%;
+}
+
+/* Cards clicáveis "Já tenho conta" / "Ainda não tenho conta" (/comecar) */
+.escolha-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    color: var(--cor-texto);
+    background: #fff;
+    border: 1px solid #E3E6EF;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 2rem 1.5rem;
+    height: 100%;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.escolha-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-hover);
+    border-color: var(--cor-primaria);
+}
+.escolha-card-titulo {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+.escolha-card-desc {
+    color: var(--cor-texto-suave);
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
 }
 
 /* Círculo numerado do "Como funciona" na tela de boas-vindas */

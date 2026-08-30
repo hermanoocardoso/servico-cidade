@@ -27,15 +27,15 @@
                             <a href="/profissional/perfil/editar" class="btn btn-outline-light btn-sm">Meu perfil</a>
                         {% endif %}
                         <a href="/indicar" class="btn btn-outline-light btn-sm">Indicar profissional</a>
-                        <a href="/minha-localizacao" class="btn btn-outline-light btn-sm">👤 Meus dados</a>
+                        <a href="/minha-localizacao" class="btn btn-outline-light btn-sm">Meus dados</a>
                         <span class="navbar-text text-white small">Olá, {{ usuario.nome.split(" ")[0] }}</span>
                         <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
                     {% else %}
                         <a href="/#categorias" class="nav-link text-white px-2">Categorias</a>
                         <a href="/#como-funciona" class="nav-link text-white px-2">Como funciona</a>
-                        <a href="/cadastro?tipo=profissional" class="nav-link text-white px-2">Para profissionais</a>
-                        <a href="/login" class="btn btn-outline-light btn-sm">👤 Entrar</a>
-                        <a href="/cadastro?tipo=cliente" class="btn btn-light btn-sm fw-semibold">Encontrar profissional</a>
+                        <a href="/comecar?tipo=profissional" class="nav-link text-white px-2">Para profissionais</a>
+                        <a href="/login" class="btn btn-outline-light btn-sm">Entrar</a>
+                        <a href="/comecar?tipo=cliente" class="btn btn-light btn-sm fw-semibold">Encontrar profissional</a>
                     {% endif %}
                 </div>
             </div>

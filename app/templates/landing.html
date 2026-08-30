@@ -18,7 +18,7 @@
             Converse direto pelo WhatsApp, sem intermediário e sem taxa.
         </p>
 
-        <form action="/cadastro" method="get" class="hero-search mx-auto mb-3">
+        <form action="/comecar" method="get" class="hero-search mx-auto mb-3">
             <input type="hidden" name="tipo" value="cliente">
             <span class="hero-search-icon" aria-hidden="true">🔎</span>
             <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
@@ -28,13 +28,9 @@
         </form>
 
         <p class="mb-0">
-            <a href="/cadastro?tipo=profissional" class="btn btn-outline-light btn-sm">
-                🛠️ Sou profissional — quero oferecer meus serviços
+            <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-sm">
+                Sou profissional — quero oferecer meus serviços
             </a>
-        </p>
-        <p class="mt-3 mb-0 small">
-            Já tem conta?
-            <a href="/login" class="btn btn-outline-light btn-sm ms-1">👤 Entrar</a>
         </p>
     </div>
 </div>
@@ -44,14 +40,14 @@
 <div class="row row-cols-3 row-cols-md-5 g-3 mb-5">
     {% for c in categorias_destaque %}
     <div class="col">
-        <a href="/cadastro?tipo=cliente&categoria={{ c.id }}" class="categoria-destaque-card">
+        <a href="/comecar?tipo=cliente" class="categoria-destaque-card">
             <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
             <span class="category-label">{{ c.nome }}</span>
         </a>
     </div>
     {% endfor %}
     <div class="col">
-        <a href="/cadastro?tipo=cliente" class="categoria-destaque-card">
+        <a href="/comecar?tipo=cliente" class="categoria-destaque-card">
             <span class="category-icon">➕</span>
             <span class="category-label">Ver todas</span>
         </a>
@@ -112,8 +108,8 @@
                 <li>✓ Contato direto pelo WhatsApp</li>
                 <li>✓ Sem intermediários</li>
             </ul>
-            <a href="/cadastro?tipo=profissional" class="btn btn-light btn-lg fw-semibold">
-                🛠️ Cadastrar meu serviço gratuitamente
+            <a href="/comecar?tipo=profissional" class="btn btn-light btn-lg fw-semibold">
+                Cadastrar meu serviço gratuitamente
             </a>
         </div>
         <div class="col-lg-5 text-center d-none d-lg-block">
@@ -167,8 +163,8 @@
         <h2 class="h3 fw-bold mb-3">Precisa de ajuda? Encontre quem pode resolver.</h2>
         <p class="lead mb-4">Pesquise agora por um profissional perto de você.</p>
         <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="/cadastro?tipo=cliente" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
-            <a href="/cadastro?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
+            <a href="/comecar?tipo=cliente" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
+            <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
         </div>
     </div>
 </div>
