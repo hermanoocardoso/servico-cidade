@@ -247,6 +247,7 @@ def catalogo(
     cidade: str | None = None,
     busca: str | None = None,
     explorar: str | None = None,
+    ordenar: str = "avaliacao",
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
@@ -313,8 +314,11 @@ def catalogo(
         )
 
     profissionais = query.all()
-    # Ordena pelos mais bem avaliados primeiro
-    profissionais.sort(key=lambda p: (p.nota_media, p.total_avaliacoes), reverse=True)
+    if ordenar == "recentes":
+        profissionais.sort(key=lambda p: p.criado_em, reverse=True)
+    else:
+        ordenar = "avaliacao"
+        profissionais.sort(key=lambda p: (p.nota_media, p.total_avaliacoes), reverse=True)
 
     # Sem nenhum filtro (busca "em branco"): mostra todo mundo, mas
     # agrupado por bairro, com o bairro do usuário logado aparecendo
@@ -365,6 +369,7 @@ def catalogo(
             "filtro_grupo": grupo or "",
             "filtro_cidade": cidade or "",
             "filtro_busca": busca or "",
+            "ordenar": ordenar,
             "cidades_destaque": cidades_mais_ativas(db),
             "eh_admin_usuario": eh_admin(usuario),
         },

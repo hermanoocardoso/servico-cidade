@@ -225,15 +225,6 @@ a.btn:visited {
     border-radius: var(--raio);
 }
 
-/* --- Catálogo: cards compactos --- */
-.card-prof-foto {
-    height: 92px;
-    width: 100%;
-    object-fit: cover;
-    border-radius: var(--raio) var(--raio) 0 0;
-    font-size: 1.3rem;
-}
-
 /* Foto no perfil público — tamanho fixo pra não depender das dimensões
    da imagem que o profissional enviou (evita ficar gigante ou distorcida). */
 .foto-perfil-publico {
@@ -243,25 +234,86 @@ a.btn:visited {
     border-radius: var(--raio);
     font-size: 1.6rem;
 }
-.card-prof-nome {
-    font-size: 0.82rem;
+
+/* --- Catálogo: card horizontal (foto + info + ações lado a lado) --- */
+.resultados-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 900px;
+}
+.resultados-lista.resultados-centralizado {
+    margin: 0 auto;
+}
+.card-prof-h {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-prof-h:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-hover);
+}
+.card-prof-h-foto {
+    flex: 0 0 88px;
+    width: 88px;
+    height: 88px;
+    border-radius: 14px;
+    object-fit: cover;
+}
+.card-prof-h-foto-vazia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EEF0F7;
+    font-size: 1.6rem;
+}
+.card-prof-h-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.card-prof-h-info h6 {
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-bottom: 0.3rem;
 }
-/* Card mais compacto no catálogo — badge, texto e botão menores que o
-   padrão do site, já que aqui aparecem várias dezenas por tela. */
-.card-prof-body .badge {
-    font-size: 0.68rem;
-    padding: 0.3em 0.6em;
+.card-prof-h-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.35rem;
 }
-.card-prof-body p {
-    font-size: 0.76rem;
+.card-prof-h-categorias .badge {
+    font-size: 0.72rem;
 }
-.card-prof-body .btn {
-    font-size: 0.76rem;
-    padding: 0.3rem 0.5rem;
+.card-prof-h-acoes {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 140px;
+}
+@media (max-width: 575px) {
+    .card-prof-h {
+        flex-wrap: wrap;
+    }
+    .card-prof-h-foto {
+        flex-basis: 64px;
+        width: 64px;
+        height: 64px;
+    }
+    .card-prof-h-acoes {
+        flex-basis: 100%;
+        flex-direction: row;
+        min-width: 0;
+    }
+    .card-prof-h-acoes .btn {
+        flex: 1;
+    }
 }
 
 /* Título discreto de seção (ex: nome do bairro agrupando o catálogo) */
@@ -297,19 +349,32 @@ a.btn:visited {
     background: var(--cor-primaria);
     color: #fff;
 }
-.btn-chip-action {
-    background: var(--cor-primaria);
-    color: #fff;
-    border: none;
+
+/* Lista de cidades "escondida" atrás de um <details> — evita fileira de
+   botões competindo com a busca; só some quando clicado em "trocar cidade". */
+.cidades-outras summary,
+.ver-todas-categorias {
     cursor: pointer;
+    color: var(--cor-primaria);
+    font-weight: 500;
+    font-size: 0.85rem;
+    list-style: none;
 }
-.btn-chip-action:hover {
-    background: var(--cor-primaria-escura);
-    color: #fff;
+.cidades-outras summary::-webkit-details-marker,
+details summary.ver-todas-categorias::-webkit-details-marker {
+    display: none;
 }
-.btn-chip-action:disabled {
-    opacity: 0.7;
-    cursor: default;
+.cidades-outras[open] summary {
+    margin-bottom: 0.5rem;
+}
+.cidades-outras-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.cidades-outras-hero summary {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: underline;
 }
 
 /* Quadrante de bairro no catálogo — separa visivelmente cada grupo */
@@ -533,48 +598,77 @@ a.btn:visited {
     text-align: left;
 }
 
-/* Barra de busca em destaque no hero — funciona como "porta de entrada"
-   pro cadastro, já que navegar o catálogo de verdade exige login. */
-.hero-search {
+/* Busca combinada (o que precisa + localização + botão) — usada tanto na
+   home de visitante quanto no catálogo, sempre como o elemento mais
+   importante da tela: nada mais compete visualmente com ela. */
+.busca-combo {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     background: #fff;
     border-radius: 50px;
-    padding: 0.4rem 0.4rem 0.4rem 1.25rem;
-    max-width: 560px;
+    padding: 0.35rem;
+    max-width: 720px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    gap: 0.15rem;
 }
-.hero-search-icon {
-    font-size: 1.1rem;
-    margin-right: 0.6rem;
-    color: var(--cor-texto-suave);
-}
-.hero-search-input {
-    flex: 1;
+.busca-combo-campo {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
     min-width: 0;
+    padding: 0.45rem 1rem;
+    gap: 0.55rem;
+}
+.busca-combo-campo + .busca-combo-campo {
+    border-left: 1px solid #E3E6EF;
+}
+.busca-combo-campo input {
     border: none;
-    font-size: 0.95rem;
-    padding: 0.5rem 0;
-    color: var(--cor-texto);
+    outline: none;
     background: transparent;
+    font-size: 0.95rem;
+    width: 100%;
+    min-width: 0;
+    color: var(--cor-texto);
 }
-.hero-search-input:focus-visible {
-    outline: 2px solid var(--cor-primaria);
-    outline-offset: 2px;
+.busca-combo-icone {
+    color: var(--cor-texto-suave);
+    font-size: 1.05rem;
+    flex-shrink: 0;
 }
-.hero-search-btn {
+.busca-combo-campo-local {
+    flex: 0 0 210px;
+}
+.busca-combo-btn {
     border-radius: 50px;
     white-space: nowrap;
-    padding: 0.55rem 1.25rem;
+    padding: 0.6rem 1.5rem;
+    flex-shrink: 0;
 }
-@media (max-width: 575px) {
-    .hero-search {
-        flex-wrap: wrap;
-        border-radius: 20px;
-        padding: 0.75rem;
+@media (max-width: 700px) {
+    .busca-combo {
+        flex-direction: column;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        gap: 0.6rem;
     }
-    .hero-search-input { flex-basis: 100%; order: 1; margin-bottom: 0.5rem; }
-    .hero-search-btn { order: 2; width: 100%; }
+    .busca-combo-campo {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        padding: 0.7rem 1rem;
+    }
+    .busca-combo-campo + .busca-combo-campo {
+        border-left: none;
+    }
+    .busca-combo-campo-local {
+        flex-basis: auto;
+    }
+    .busca-combo-btn {
+        width: 100%;
+        border-radius: 14px;
+    }
 }
 
 /* Cards de categoria em destaque na home de visitante */

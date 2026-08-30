@@ -12,34 +12,39 @@
         <span class="hero-bubble b6">🧹</span>
     </div>
     <div class="landing-hero-content">
-        <h1 class="display-6 fw-bold mb-3">O que você precisa resolver hoje?</h1>
-        <p class="lead mb-4">
-            Encontre profissionais avaliados perto de você e chame no WhatsApp em poucos cliques.
-        </p>
+        <h1 class="display-6 fw-bold mb-2">Encontre quem pode resolver.</h1>
+        <p class="lead mb-4">Encontre profissionais perto de você para resolver o que precisa.</p>
 
-        <form action="/" method="get" class="hero-search mx-auto mb-2">
-            <span class="hero-search-icon" aria-hidden="true">🔎</span>
-            <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
-            <input type="text" id="hero-busca" name="busca" class="hero-search-input"
-                   placeholder="O que você precisa? Ex: eletricista, diarista, manicure...">
-            <button type="submit" class="btn btn-primary hero-search-btn">Encontrar profissional</button>
+        <form action="/" method="get" class="busca-combo busca-combo-hero mx-auto mb-2">
+            <div class="busca-combo-campo">
+                <span class="busca-combo-icone" aria-hidden="true">🔎</span>
+                <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
+                <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa? Ex: eletricista, encanador, mecânico...">
+            </div>
+            <div class="busca-combo-campo busca-combo-campo-local">
+                <span class="busca-combo-icone" aria-hidden="true">📍</span>
+                <label for="hero-cidade" class="visually-hidden">Sua localização</label>
+                <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
+            </div>
+            <button type="submit" class="btn btn-primary busca-combo-btn">Buscar</button>
         </form>
 
-        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-2">
+        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-1">
             📍 Usar minha localização
         </button>
-        <div id="statusLocalizacaoHero" class="small mb-2"></div>
-
         {% if cidades_destaque %}
-        <p class="small text-white-50 mb-2">
-            Ou vá direto pra sua cidade:
-            {% for c in cidades_destaque %}
-                <a href="/?cidade={{ c | urlencode }}" class="btn btn-outline-light btn-sm ms-1 mb-1">{{ c }}</a>
-            {% endfor %}
-        </p>
+        <details class="cidades-outras cidades-outras-hero">
+            <summary>ou escolher cidade</summary>
+            <div class="cidades-outras-lista justify-content-center">
+                {% for c in cidades_destaque %}
+                    <a href="/?cidade={{ c | urlencode }}" class="btn btn-outline-light btn-sm">{{ c }}</a>
+                {% endfor %}
+            </div>
+        </details>
         {% endif %}
+        <div id="statusLocalizacaoHero" class="small mt-2 mb-2"></div>
 
-        <p class="mb-0">
+        <p class="mb-0 mt-2">
             <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-sm">
                 Sou profissional — quero oferecer meus serviços
             </a>
@@ -71,32 +76,23 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         var end = data.address || {};
-                        // A cidade é o dado mais confiável pra achar profissionais (nem
-                        // todo mundo cadastra o bairro certinho) — o bairro só entra como
-                        // informação extra, mostrada mas não usada sozinha na busca.
                         var cidade = end.city || end.town || end.municipality || "";
                         var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
                         var local = cidade || bairro;
                         btn.disabled = false;
+                        var inputCidade = document.getElementById("hero-cidade");
                         if (local) {
-                            // Sem confirmação, um GPS impreciso (comum em notebook, sem chip
-                            // de GPS de verdade) levaria a pessoa pra resultados da cidade
-                            // errada sem ela perceber — por isso só sugere, não busca sozinho.
-                            var buscaInput = document.getElementById("hero-busca");
+                            inputCidade.value = local;
                             var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
-                            // Mostra a coordenada crua + link pro mapa: se o pino aparecer no
-                            // lugar errado, o problema é a localização do aparelho, não o site
-                            // (precisão em dezenas de km indica estimativa por rede, não GPS real).
                             var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-                            status.innerHTML = "📍 Você está em <strong>" + onde + "</strong> — " +
+                            status.innerHTML = "Você está em <strong>" + onde + "</strong> — " +
                                 '<a href="#" id="linkBuscarLocal" class="text-white text-decoration-underline">buscar profissionais aqui</a>.<br>' +
                                 '<span class="text-white-50">Coordenada recebida: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
                                 (precisao ? " (precisão ±" + precisao.toLocaleString("pt-BR") + "m)" : "") +
                                 ' — <a href="' + linkMapa + '" target="_blank" rel="noopener" class="text-white-50">ver no mapa</a></span>';
                             document.getElementById("linkBuscarLocal").addEventListener("click", function (e) {
                                 e.preventDefault();
-                                window.location.href = "/?cidade=" + encodeURIComponent(local) +
-                                    (buscaInput.value ? "&busca=" + encodeURIComponent(buscaInput.value) : "");
+                                inputCidade.form.submit();
                             });
                         } else {
                             status.textContent = "Não consegui identificar sua cidade. Digite na busca acima.";
@@ -121,10 +117,9 @@
 })();
 </script>
 
-<h2 id="categorias" class="h4 fw-semibold text-center mb-1">O que você precisa hoje?</h2>
-<p class="text-muted text-center mb-4">Escolha uma categoria pra começar a buscar.</p>
-<div class="row row-cols-3 row-cols-md-5 g-3 mb-5">
-    {% for c in categorias_destaque %}
+<h2 id="categorias" class="h5 fw-semibold text-center mb-3">Serviços populares</h2>
+<div class="row row-cols-3 row-cols-md-5 g-3 mb-2">
+    {% for c in categorias_destaque[:5] %}
     <div class="col">
         <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
             <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
@@ -132,13 +127,26 @@
         </a>
     </div>
     {% endfor %}
-    <div class="col">
-        <a href="/?explorar=1" class="categoria-destaque-card">
-            <span class="category-icon">➕</span>
-            <span class="category-label">Ver todas</span>
-        </a>
-    </div>
 </div>
+<details class="mb-5 text-center">
+    <summary class="ver-todas-categorias">+ Ver todas as categorias</summary>
+    <div class="row row-cols-3 row-cols-md-5 g-3 mt-1 text-start">
+        {% for c in categorias_destaque[5:] %}
+        <div class="col">
+            <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
+                <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
+                <span class="category-label">{{ c.nome }}</span>
+            </a>
+        </div>
+        {% endfor %}
+        <div class="col">
+            <a href="/?explorar=1" class="categoria-destaque-card">
+                <span class="category-icon">➕</span>
+                <span class="category-label">Todas</span>
+            </a>
+        </div>
+    </div>
+</details>
 
 <h2 id="como-funciona" class="h4 fw-semibold text-center mb-1">É simples. Você encontra, escolhe e chama.</h2>
 <p class="text-muted text-center mb-4">Veja como funciona pra cada lado.</p>
@@ -240,17 +248,6 @@
         <div class="diferencial-card">
             <div class="category-icon mx-auto mb-2">🛡️</div>
             <div class="small fw-semibold">Mais confiança pra contratar</div>
-        </div>
-    </div>
-</div>
-
-<div class="landing-hero mb-4">
-    <div class="landing-hero-content">
-        <h2 class="h3 fw-bold mb-3">Precisa de ajuda? Encontre quem pode resolver.</h2>
-        <p class="lead mb-4">Pesquise agora por um profissional perto de você.</p>
-        <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="/?explorar=1" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
-            <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
         </div>
     </div>
 </div>

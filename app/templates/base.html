@@ -23,19 +23,30 @@
             <div class="collapse navbar-collapse flex-grow-0 ms-auto" id="navMenu">
                 <div class="d-flex flex-column flex-lg-row gap-2 py-2 py-lg-0 align-items-lg-center">
                     {% if usuario %}
-                        {% if usuario.tipo == "profissional" %}
-                            <a href="/profissional/perfil/editar" class="btn btn-outline-light btn-sm">Meu perfil</a>
-                        {% endif %}
-                        <a href="/indicar" class="btn btn-outline-light btn-sm">Indicar profissional</a>
-                        <a href="/minha-localizacao" class="btn btn-outline-light btn-sm">Meus dados</a>
-                        <span class="navbar-text text-white small">Olá, {{ usuario.nome.split(" ")[0] }}</span>
-                        <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                Olá, {{ usuario.nome.split(" ")[0] }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if usuario.tipo == "profissional" %}
+                                    <li><a class="dropdown-item" href="/profissional/perfil/editar">Meu perfil</a></li>
+                                    {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
+                                        <li><a class="dropdown-item" href="/profissional/{{ usuario.perfil_profissional.id }}">Perfil público</a></li>
+                                    {% endif %}
+                                {% endif %}
+                                <li><a class="dropdown-item" href="/minha-localizacao">Meus dados</a></li>
+                                <li><a class="dropdown-item" href="/indicar">Indicar profissional</a></li>
+                                {% if eh_admin_usuario %}
+                                    <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/logout">Sair</a></li>
+                            </ul>
+                        </div>
                     {% else %}
-                        <a href="/#categorias" class="nav-link text-white px-2">Categorias</a>
-                        <a href="/#como-funciona" class="nav-link text-white px-2">Como funciona</a>
-                        <a href="/comecar?tipo=profissional" class="nav-link text-white px-2">Para profissionais</a>
                         <a href="/login" class="btn btn-outline-light btn-sm">Entrar</a>
-                        <a href="/?explorar=1" class="btn btn-light btn-sm fw-semibold">Encontrar profissional</a>
+                        <a href="/comecar?tipo=cliente" class="btn btn-light btn-sm fw-semibold">Criar conta</a>
                     {% endif %}
                 </div>
             </div>
@@ -58,7 +69,6 @@
                     <ul class="list-unstyled small">
                         <li><a href="/?explorar=1">Encontrar profissional</a></li>
                         <li><a href="/#categorias">Categorias</a></li>
-                        <li><a href="/#como-funciona">Como funciona</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-md-3">
@@ -66,12 +76,12 @@
                     <ul class="list-unstyled small">
                         <li><a href="/comecar?tipo=profissional">Cadastrar serviço</a></li>
                         <li><a href="/login">Entrar</a></li>
-                        <li><a href="/#como-funciona">Como funciona</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-md-3">
                     <h6 class="footer-title">Empresa</h6>
                     <ul class="list-unstyled small">
+                        <li><a href="/#como-funciona">Como funciona</a></li>
                         <li><a href="/indicar">Indicar profissional</a></li>
                     </ul>
                 </div>

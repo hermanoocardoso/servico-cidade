@@ -2,113 +2,80 @@
 {% block titulo %}Encontre um profissional{% endblock %}
 
 {% macro card_profissional(p) %}
-<div class="col">
-    <div class="card h-100 card-prof">
-        {% if p.foto_url %}
-            <img src="{{ p.foto_url }}" class="card-prof-foto" alt="{{ p.usuario.nome }}">
-        {% else %}
-            <div class="card-prof-foto sem-foto d-flex align-items-center justify-content-center">
-                <span>📷</span>
-            </div>
-        {% endif %}
-        <div class="card-body p-2 card-prof-body">
-            <h6 class="card-prof-nome mb-1">{{ p.usuario.nome }}</h6>
+<div class="card-prof-h">
+    {% if p.foto_url %}
+        <img src="{{ p.foto_url }}" class="card-prof-h-foto" alt="{{ p.usuario.nome }}">
+    {% else %}
+        <div class="card-prof-h-foto card-prof-h-foto-vazia">📷</div>
+    {% endif %}
+    <div class="card-prof-h-info">
+        <h6 class="mb-1">{{ p.usuario.nome }}</h6>
+        <div class="card-prof-h-categorias">
             {% if p.eh_medico and p.especialidade_medica %}
-                <span class="badge bg-info text-dark mb-1">🩺 {{ p.especialidade_medica }}</span>
+                <span class="badge bg-info text-dark">🩺 {{ p.especialidade_medica }}</span>
             {% else %}
-                {% for cat in p.categorias[:2] %}
-                    <span class="badge bg-secondary mb-1">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
+                {% for cat in p.categorias[:3] %}
+                    <span class="badge bg-secondary">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
                 {% endfor %}
             {% endif %}
-            <p class="text-muted small mb-1">{{ p.bairro or '' }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade or '' }}</p>
-            {% if p.eh_medico and p.atende_convenio is not none %}
-                <p class="text-muted small mb-1">
-                    {% if p.atende_convenio %}✅ Convênio{% else %}💳 Particular{% endif %}
-                </p>
-            {% endif %}
-            {% if p.total_avaliacoes > 0 %}
-                <p class="small mb-2">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }})</span></p>
-            {% else %}
-                <p class="small text-muted mb-2">Sem avaliações</p>
-            {% endif %}
-            <div class="d-flex gap-1">
-                <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm w-100">Ver perfil</a>
-                {% if usuario %}
-                <a href="https://wa.me/{{ p.whatsapp_numero }}" target="_blank" rel="noopener" class="btn btn-success btn-sm d-inline-flex align-items-center" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp">
-                    {{ whatsapp_icon(16) }}
-                </a>
-                {% else %}
-                <a href="/comecar?tipo=cliente" class="btn btn-success btn-sm d-inline-flex align-items-center" title="Entrar para chamar no WhatsApp" aria-label="Entrar para chamar no WhatsApp">
-                    {{ whatsapp_icon(16) }}
-                </a>
-                {% endif %}
-            </div>
         </div>
+        <p class="text-muted small mb-1">📍 {{ p.bairro or '' }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade or '' }}</p>
+        {% if p.total_avaliacoes > 0 %}
+            <p class="small mb-0">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }} avaliações)</span></p>
+        {% else %}
+            <p class="small text-muted mb-0">Novo no catálogo — ainda sem avaliações</p>
+        {% endif %}
+    </div>
+    <div class="card-prof-h-acoes">
+        <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm">Ver perfil</a>
+        {% if usuario %}
+        <a href="https://wa.me/{{ p.whatsapp_numero }}" target="_blank" rel="noopener" class="btn btn-success btn-sm d-inline-flex align-items-center justify-content-center gap-1">
+            {{ whatsapp_icon(16) }} WhatsApp
+        </a>
+        {% else %}
+        <a href="/comecar?tipo=cliente" class="btn btn-success btn-sm d-inline-flex align-items-center justify-content-center gap-1">
+            {{ whatsapp_icon(16) }} Entrar
+        </a>
+        {% endif %}
     </div>
 </div>
 {% endmacro %}
 
+{% macro url_ordenar(valor) -%}
+/?ordenar={{ valor }}{% if filtro_busca %}&busca={{ filtro_busca | urlencode }}{% endif %}{% if filtro_categoria %}&categoria={{ filtro_categoria }}{% endif %}{% if filtro_grupo %}&grupo={{ filtro_grupo | urlencode }}{% endif %}{% if filtro_cidade %}&cidade={{ filtro_cidade | urlencode }}{% endif %}
+{%- endmacro %}
+
 {% block conteudo %}
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <div>
-        {% if usuario %}
-            <span class="text-muted">Olá, {{ usuario.nome.split(" ")[0] }} 👋</span>
-        {% else %}
-            <span class="text-muted">Veja quem pode te ajudar agora.</span>
-        {% endif %}
-    </div>
-    <div class="d-flex flex-wrap gap-2">
-        {% if usuario %}
-            {% if usuario.tipo == "profissional" %}
-                <a href="/profissional/perfil/editar" class="btn-chip">Meu perfil</a>
-                {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
-                    <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn-chip">Perfil público</a>
-                {% endif %}
-            {% endif %}
-            <a href="/indicar" class="btn-chip">Indicar</a>
-            <a href="/minha-localizacao" class="btn-chip">Meus dados</a>
-            {% if eh_admin_usuario %}
-                <a href="/admin" class="btn-chip">Admin</a>
-            {% endif %}
-        {% else %}
-            <a href="/comecar?tipo=cliente" class="btn-chip">Entrar</a>
-            <a href="/comecar?tipo=profissional" class="btn-chip">Sou profissional</a>
-        {% endif %}
-    </div>
-</div>
+<h1 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h1>
 
-<h2 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h2>
-
-<form method="get" action="/" class="row g-2 mb-2">
-    <div class="col-md-4">
-        <input type="text" name="busca" value="{{ filtro_busca }}" class="form-control" placeholder="Nome ou tipo de serviço...">
+<form method="get" action="/" class="busca-combo mb-2">
+    <div class="busca-combo-campo">
+        <span class="busca-combo-icone" aria-hidden="true">🔎</span>
+        <label for="inputBuscaIndex" class="visually-hidden">O que você precisa?</label>
+        <input type="text" id="inputBuscaIndex" name="busca" value="{{ filtro_busca }}" placeholder="O que você precisa? Ex: eletricista, encanador, mecânico...">
     </div>
-    <div class="col-md-3">
-        <select name="categoria" class="form-select" aria-label="Filtrar por categoria">
-            <option value="">Todas as categorias</option>
-            {% for c in categorias %}
-                <option value="{{ c.id }}" {% if filtro_categoria == c.id %}selected{% endif %}>{{ c.nome }}</option>
-            {% endfor %}
-        </select>
+    <div class="busca-combo-campo busca-combo-campo-local">
+        <span class="busca-combo-icone" aria-hidden="true">📍</span>
+        <label for="inputCidadeBusca" class="visually-hidden">Sua localização</label>
+        <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" placeholder="Sua localização">
     </div>
-    <div class="col-md-3">
-        <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" class="form-control" placeholder="Cidade / bairro">
-    </div>
-    <div class="col-md-2 d-grid">
-        <button class="btn btn-primary" type="submit">Buscar</button>
-    </div>
+    <button type="submit" class="btn btn-primary busca-combo-btn">Buscar</button>
 </form>
 
-<div class="mb-3">
-    <button type="button" id="btnCheckin" class="btn-chip btn-chip-action">Fazer check-in aqui perto</button>
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4 small">
+    <button type="button" id="btnCheckin" class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold">📍 Usar minha localização</button>
     {% if cidades_destaque %}
-        <span class="text-muted small ms-2">ou vá direto:</span>
-        {% for c in cidades_destaque %}
-            <a href="/?cidade={{ c | urlencode }}" class="btn-chip {% if filtro_cidade == c %}active{% endif %}">{{ c }}</a>
-        {% endfor %}
+    <details class="cidades-outras">
+        <summary>trocar cidade</summary>
+        <div class="cidades-outras-lista">
+            {% for c in cidades_destaque %}
+                <a href="/?cidade={{ c | urlencode }}" class="btn-chip {% if filtro_cidade == c %}active{% endif %}">{{ c }}</a>
+            {% endfor %}
+        </div>
+    </details>
     {% endif %}
-    <div id="checkinStatus" class="text-muted small mt-1"></div>
 </div>
+<div id="checkinStatus" class="text-muted small mb-3"></div>
 
 <script>
 (function () {
@@ -149,13 +116,11 @@
                             // de verdade, como em notebook) pode errar bastante. Só preenche
                             // o campo e pede confirmação de um clique antes de buscar.
                             // Mostra a coordenada crua + link pro mapa: se o pino aparecer no
-                            // lugar errado, o problema é a localização do aparelho, não o site
-                            // (a "precisão" reportada pelo navegador ajuda a confirmar isso —
-                            // valores de dezenas de km indicam estimativa por rede, não GPS real).
+                            // lugar errado, o problema é a localização do aparelho, não o site.
                             var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-                            status.innerHTML = "📍 Você está em <strong>" + onde + "</strong> — " +
+                            status.innerHTML = "Você está em <strong>" + onde + "</strong> — " +
                                 '<a href="#" id="linkConfirmarCheckin" class="fw-semibold">buscar profissionais aqui</a>' +
-                                " (ou corrija o campo ao lado).<br>" +
+                                ".<br>" +
                                 '<span class="text-muted">Coordenada recebida do seu aparelho: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
                                 (precisao ? " (precisão ±" + precisao.toLocaleString("pt-BR") + "m)" : "") +
                                 ' — <a href="' + linkMapa + '" target="_blank" rel="noopener">ver no mapa</a>.</span>';
@@ -187,12 +152,12 @@
 })();
 </script>
 
-<div class="mega-menu mb-4">
+<div class="mega-menu mb-2">
     <a href="/?explorar=1" class="mega-item {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
         <span class="category-icon">🔎</span>
         <span class="category-label">Todas</span>
     </a>
-    {% for grupo_nome, cats in categorias_por_grupo %}
+    {% for grupo_nome, cats in categorias_por_grupo[:4] %}
     <div class="mega-item-wrap">
         <a href="/?grupo={{ grupo_nome | urlencode }}" class="mega-item {% if filtro_grupo == grupo_nome %}active{% endif %}">
             <span class="category-icon">{{ grupo_emoji(grupo_nome) }}</span>
@@ -208,12 +173,51 @@
     </div>
     {% endfor %}
 </div>
+{% if categorias_por_grupo|length > 4 %}
+<details class="mb-4">
+    <summary class="ver-todas-categorias">+ Ver todas as categorias</summary>
+    <div class="mega-menu mt-2">
+        {% for grupo_nome, cats in categorias_por_grupo[4:] %}
+        <div class="mega-item-wrap">
+            <a href="/?grupo={{ grupo_nome | urlencode }}" class="mega-item {% if filtro_grupo == grupo_nome %}active{% endif %}">
+                <span class="category-icon">{{ grupo_emoji(grupo_nome) }}</span>
+                <span class="category-label">{{ grupo_nome }}</span>
+            </a>
+            <div class="mega-panel">
+                {% for c in cats %}
+                    <a href="/?categoria={{ c.id }}" class="mega-panel-link {% if filtro_categoria == c.id %}active{% endif %}">
+                        {{ categoria_emoji(c.nome) }} {{ c.nome }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% else %}
+<div class="mb-4"></div>
+{% endif %}
 
 {% if usuario and not bairro_usuario and profissionais_por_bairro %}
 <div class="alert alert-light border small">
     Dica: <a href="/minha-localizacao">cadastre seu bairro</a> pra gente mostrar primeiro quem atende perto de você.
 </div>
 {% endif %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="h6 fw-semibold mb-0 text-muted">
+        {% if profissionais|length == 1 %}
+            1 profissional encontrado
+        {% else %}
+            {{ profissionais|length }} profissionais encontrados
+        {% endif %}
+        {%- if filtro_cidade %} em {{ filtro_cidade }}{% endif %}
+    </h2>
+    <div>
+        <a href="{{ url_ordenar('avaliacao') }}" class="btn-chip {% if ordenar == 'avaliacao' %}active{% endif %}">Melhor avaliados</a>
+        <a href="{{ url_ordenar('recentes') }}" class="btn-chip {% if ordenar == 'recentes' %}active{% endif %}">Mais recentes</a>
+    </div>
+</div>
 
 {% if profissionais_por_bairro %}
     {% for bairro_nome, lista in profissionais_por_bairro %}
@@ -225,7 +229,7 @@
                 {{ bairro_nome }}
             {% endif %}
         </h6>
-        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-3">
+        <div class="resultados-lista">
             {% for p in lista %}
                 {{ card_profissional(p) }}
             {% endfor %}
@@ -233,7 +237,7 @@
     </div>
     {% endfor %}
 {% elif profissionais %}
-<div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-3">
+<div class="resultados-lista {% if profissionais|length <= 2 %}resultados-centralizado{% endif %}">
     {% for p in profissionais %}
         {{ card_profissional(p) }}
     {% endfor %}
