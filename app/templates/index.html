@@ -101,7 +101,13 @@
 
 <div class="mb-3">
     <button type="button" id="btnCheckin" class="btn-chip btn-chip-action">Fazer check-in aqui perto</button>
-    <span id="checkinStatus" class="text-muted small ms-2"></span>
+    {% if cidades_destaque %}
+        <span class="text-muted small ms-2">ou vá direto:</span>
+        {% for c in cidades_destaque %}
+            <a href="/?cidade={{ c | urlencode }}" class="btn-chip {% if filtro_cidade == c %}active{% endif %}">{{ c }}</a>
+        {% endfor %}
+    {% endif %}
+    <div id="checkinStatus" class="text-muted small mt-1"></div>
 </div>
 
 <script>

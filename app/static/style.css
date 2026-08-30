@@ -293,6 +293,10 @@ a.btn:visited {
     background: #DCE2FF;
     color: var(--cor-primaria-escura);
 }
+.btn-chip.active {
+    background: var(--cor-primaria);
+    color: #fff;
+}
 .btn-chip-action {
     background: var(--cor-primaria);
     color: #fff;

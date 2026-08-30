@@ -25,10 +25,19 @@
             <button type="submit" class="btn btn-primary hero-search-btn">Encontrar profissional</button>
         </form>
 
-        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-3">
+        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-2">
             📍 Usar minha localização
         </button>
         <div id="statusLocalizacaoHero" class="small mb-2"></div>
+
+        {% if cidades_destaque %}
+        <p class="small text-white-50 mb-2">
+            Ou vá direto pra sua cidade:
+            {% for c in cidades_destaque %}
+                <a href="/?cidade={{ c | urlencode }}" class="btn btn-outline-light btn-sm ms-1 mb-1">{{ c }}</a>
+            {% endfor %}
+        </p>
+        {% endif %}
 
         <p class="mb-0">
             <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-sm">

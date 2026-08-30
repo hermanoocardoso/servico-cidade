@@ -218,6 +218,27 @@ CATEGORIAS_DESTAQUE_LANDING = [
 # Catálogo (página inicial)
 # ---------------------------------------------------------------------------
 
+def cidades_mais_ativas(db: Session, limite: int = 6) -> list[str]:
+    """Cidades com mais profissionais cadastrados, pra oferecer como atalho
+    de clique — pra quem não quer (ou não confia n)a localização automática
+    do navegador (GPS de notebook/rede errando é comum, e o site não tem
+    como controlar isso)."""
+    linhas = (
+        db.query(models.ProfessionalProfile.cidade)
+        .filter(
+            models.ProfessionalProfile.aprovado == True,  # noqa: E712
+            models.ProfessionalProfile.ativo == True,  # noqa: E712
+            models.ProfessionalProfile.cidade.isnot(None),
+            models.ProfessionalProfile.cidade != "",
+        )
+        .group_by(models.ProfessionalProfile.cidade)
+        .order_by(func.count(models.ProfessionalProfile.id).desc())
+        .limit(limite)
+        .all()
+    )
+    return [linha[0] for linha in linhas]
+
+
 @app.get("/")
 def catalogo(
     request: Request,
@@ -247,9 +268,14 @@ def catalogo(
             if c.nome in CATEGORIAS_DESTAQUE_LANDING
             else len(CATEGORIAS_DESTAQUE_LANDING)
         )
+
         return templates.TemplateResponse(
             "landing.html",
-            {"request": request, "categorias_destaque": categorias_destaque},
+            {
+                "request": request,
+                "categorias_destaque": categorias_destaque,
+                "cidades_destaque": cidades_mais_ativas(db),
+            },
         )
 
     # O <select> de categoria manda "" quando é "Todas as categorias" —
@@ -339,6 +365,7 @@ def catalogo(
             "filtro_grupo": grupo or "",
             "filtro_cidade": cidade or "",
             "filtro_busca": busca or "",
+            "cidades_destaque": cidades_mais_ativas(db),
             "eh_admin_usuario": eh_admin(usuario),
         },
     )
