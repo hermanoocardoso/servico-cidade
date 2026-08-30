@@ -157,7 +157,7 @@
         <span class="category-icon">🔎</span>
         <span class="category-label">Todas</span>
     </a>
-    {% for grupo_nome, cats in categorias_por_grupo[:4] %}
+    {% for grupo_nome, cats in categorias_por_grupo %}
     <div class="mega-item-wrap">
         <a href="/?grupo={{ grupo_nome | urlencode }}" class="mega-item {% if filtro_grupo == grupo_nome %}active{% endif %}">
             <span class="category-icon">{{ grupo_emoji(grupo_nome) }}</span>
@@ -173,30 +173,7 @@
     </div>
     {% endfor %}
 </div>
-{% if categorias_por_grupo|length > 4 %}
-<details class="mb-4">
-    <summary class="ver-todas-categorias">+ Ver todas as categorias</summary>
-    <div class="mega-menu mt-2">
-        {% for grupo_nome, cats in categorias_por_grupo[4:] %}
-        <div class="mega-item-wrap">
-            <a href="/?grupo={{ grupo_nome | urlencode }}" class="mega-item {% if filtro_grupo == grupo_nome %}active{% endif %}">
-                <span class="category-icon">{{ grupo_emoji(grupo_nome) }}</span>
-                <span class="category-label">{{ grupo_nome }}</span>
-            </a>
-            <div class="mega-panel">
-                {% for c in cats %}
-                    <a href="/?categoria={{ c.id }}" class="mega-panel-link {% if filtro_categoria == c.id %}active{% endif %}">
-                        {{ categoria_emoji(c.nome) }} {{ c.nome }}
-                    </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</details>
-{% else %}
 <div class="mb-4"></div>
-{% endif %}
 
 {% if usuario and not bairro_usuario and profissionais_por_bairro %}
 <div class="alert alert-light border small">
