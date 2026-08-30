@@ -56,6 +56,11 @@ a {
 .navbar-brand {
     letter-spacing: 0.2px;
 }
+.navbar-tagline {
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.85);
+}
 /* Header fica "grudado" no topo e encolhe discretamente ao rolar (JS troca
    essa classe) — mantém a marca visível sem pesar a tela. */
 .navbar.sticky-top {
