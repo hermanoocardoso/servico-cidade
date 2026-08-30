@@ -48,7 +48,7 @@
 {% block conteudo %}
 <h1 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h1>
 
-<form method="get" action="/" class="busca-combo mb-2">
+<form method="get" action="/" class="busca-combo mb-2" id="formBuscaIndex">
     <div class="busca-combo-campo">
         <span class="busca-combo-icone" aria-hidden="true">🔎</span>
         <label for="inputBuscaIndex" class="visually-hidden">O que você precisa?</label>
@@ -59,8 +59,15 @@
         <label for="inputCidadeBusca" class="visually-hidden">Sua localização</label>
         <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" placeholder="Sua localização">
     </div>
-    <button type="submit" class="btn btn-primary busca-combo-btn">Buscar</button>
+    <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarIndex">Buscar</button>
 </form>
+<script>
+document.getElementById("formBuscaIndex").addEventListener("submit", function () {
+    var b = document.getElementById("btnBuscarIndex");
+    b.disabled = true;
+    b.textContent = "Procurando...";
+});
+</script>
 
 <div class="d-flex flex-wrap align-items-center gap-3 mb-4 small">
     <button type="button" id="btnCheckin" class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold">📍 Usar minha localização</button>

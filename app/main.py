@@ -11,6 +11,7 @@ Veja o LEIA-ME.md na raiz do projeto para o passo a passo completo
 de instalação.
 """
 import hashlib
+import json
 import os
 import re
 from datetime import datetime, timedelta
@@ -57,6 +58,16 @@ with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
     CSS_VERSION = hashlib.md5(_f.read()).hexdigest()[:8]
 templates.env.globals["css_version"] = CSS_VERSION
 templates.env.globals["ano_atual"] = datetime.now().year
+
+
+def _tojson(valor):
+    # Jinja2 "puro" (sem Flask) não vem com filtro tojson — usado pra
+    # embutir listas simples (ex: nomes de categoria) num <script> inline
+    # com segurança, evitando fechar a tag </script> sem querer.
+    return Markup(json.dumps(valor, ensure_ascii=False).replace("</", "<\\/"))
+
+
+templates.env.filters["tojson"] = _tojson
 
 # Ícone do WhatsApp (SVG inline) usado nos botões de contato — evita
 # depender de um pacote de ícones externo pra um único glifo.
@@ -213,6 +224,22 @@ CATEGORIAS_DESTAQUE_LANDING = [
     "Cabeleireiro",
 ]
 
+# Descrição curta de cada categoria em destaque, só pro card ficar mais
+# informativo na home — puramente texto de apresentação, não afeta o filtro.
+CATEGORIA_DESCRICOES_DESTAQUE = {
+    "Eletricista": "Instalações e reparos",
+    "Mecânico/Oficina": "Manutenção e oficina",
+    "Diarista / Faxina": "Limpeza residencial",
+    "Manicure": "Unhas e cuidados",
+    "Encanador": "Vazamentos e hidráulica",
+    "Informática & Tecnologia": "Computadores e redes",
+    "Pedreiro / Reformas": "Obras e reformas",
+    "Ar-condicionado / Refrigeração": "Instalação e manutenção",
+    "Conserto de celular": "Telas e reparos",
+    "Cabeleireiro": "Cortes e tratamentos",
+}
+templates.env.globals["categoria_descricao"] = lambda nome: CATEGORIA_DESCRICOES_DESTAQUE.get(nome, "")
+
 
 # ---------------------------------------------------------------------------
 # Catálogo (página inicial)
@@ -270,12 +297,31 @@ def catalogo(
             else len(CATEGORIAS_DESTAQUE_LANDING)
         )
 
+        # "Profissionais em destaque": só dados reais, nunca inventados. Pega
+        # os aprovados/ativos, prioriza melhor avaliados e desempata pelos
+        # mais recentes — assim quem acabou de ser aprovado também aparece,
+        # não só quem já tem avaliação.
+        candidatos = (
+            db.query(models.ProfessionalProfile)
+            .filter(
+                models.ProfessionalProfile.aprovado == True,  # noqa: E712
+                models.ProfessionalProfile.ativo == True,  # noqa: E712
+            )
+            .all()
+        )
+        candidatos.sort(key=lambda p: (p.nota_media, p.total_avaliacoes, p.criado_em), reverse=True)
+        profissionais_destaque = candidatos[:4]
+
+        nomes_categorias = [c.nome for c in db.query(models.Category).order_by(models.Category.nome).all()]
+
         return templates.TemplateResponse(
             "landing.html",
             {
                 "request": request,
                 "categorias_destaque": categorias_destaque,
                 "cidades_destaque": cidades_mais_ativas(db),
+                "profissionais_destaque": profissionais_destaque,
+                "nomes_categorias": nomes_categorias,
             },
         )
 

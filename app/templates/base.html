@@ -13,7 +13,7 @@
     <link href="/static/style.css?v={{ css_version }}" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top mb-4" id="navPrincipal">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">🏃 SocorreAqui</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu"
@@ -98,5 +98,38 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function () {
+        // Header encolhe discretamente ao rolar — nada de esconder, só um
+        // respiro visual menor + sombra mais forte pra indicar profundidade.
+        var nav = document.getElementById("navPrincipal");
+        if (nav) {
+            var aoRolar = function () {
+                nav.classList.toggle("navbar-scrolled", window.scrollY > 12);
+            };
+            aoRolar();
+            window.addEventListener("scroll", aoRolar, { passive: true });
+        }
+
+        // Entrada suave das seções conforme aparecem na tela. Elementos com
+        // .reveal começam invisíveis (via CSS) e ganham .reveal-visivel
+        // quando cruzam a viewport; prefers-reduced-motion já neutraliza a
+        // transição no CSS, então aqui não precisa de tratamento especial.
+        var alvos = document.querySelectorAll(".reveal");
+        if (alvos.length && "IntersectionObserver" in window) {
+            var observador = new IntersectionObserver(function (entradas) {
+                entradas.forEach(function (entrada) {
+                    if (entrada.isIntersecting) {
+                        entrada.target.classList.add("reveal-visivel");
+                        observador.unobserve(entrada.target);
+                    }
+                });
+            }, { threshold: 0.15 });
+            alvos.forEach(function (el) { observador.observe(el); });
+        } else {
+            alvos.forEach(function (el) { el.classList.add("reveal-visivel"); });
+        }
+    })();
+    </script>
 </body>
 </html>

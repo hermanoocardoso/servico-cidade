@@ -12,22 +12,28 @@
         <span class="hero-bubble b6">🧹</span>
     </div>
     <div class="landing-hero-content">
-        <h1 class="display-6 fw-bold mb-2">Encontre quem pode resolver.</h1>
-        <p class="lead mb-4">Encontre profissionais perto de você para resolver o que precisa.</p>
+        <h1 class="display-6 fw-bold mb-2">Encontre quem pode <span class="text-warning">resolver</span>.</h1>
+        <p class="lead mb-4">Profissionais da sua região para serviços do dia a dia. Encontre, compare e fale direto com quem entende.</p>
 
-        <form action="/" method="get" class="busca-combo busca-combo-hero mx-auto mb-2">
-            <div class="busca-combo-campo">
-                <span class="busca-combo-icone" aria-hidden="true">🔎</span>
-                <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
-                <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa? Ex: eletricista, encanador, mecânico...">
+        <div class="busca-combo-wrap mx-auto mb-2">
+            <form action="/" method="get" class="busca-combo" autocomplete="off">
+                <div class="busca-combo-campo">
+                    <span class="busca-combo-icone" aria-hidden="true">🔎</span>
+                    <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
+                    <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa?">
+                </div>
+                <div class="busca-combo-campo busca-combo-campo-local">
+                    <span class="busca-combo-icone" aria-hidden="true">📍</span>
+                    <label for="hero-cidade" class="visually-hidden">Sua localização</label>
+                    <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
+                </div>
+                <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarHero">Encontrar profissional</button>
+            </form>
+            <div class="busca-autocomplete" id="autocompleteHero">
+                <div class="busca-autocomplete-titulo">Você está procurando...</div>
+                <div id="autocompleteHeroLista"></div>
             </div>
-            <div class="busca-combo-campo busca-combo-campo-local">
-                <span class="busca-combo-icone" aria-hidden="true">📍</span>
-                <label for="hero-cidade" class="visually-hidden">Sua localização</label>
-                <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
-            </div>
-            <button type="submit" class="btn btn-primary busca-combo-btn">Buscar</button>
-        </form>
+        </div>
 
         <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-1">
             📍 Usar minha localização
@@ -54,6 +60,59 @@
 
 <script>
 (function () {
+    // --- Placeholder rotativo (exemplos reais de busca) ---
+    var exemplos = ["eletricista", "encanador", "diarista", "mecânico", "técnico de informática"];
+    var campoBusca = document.getElementById("hero-busca");
+    var i = 0;
+    var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    campoBusca.setAttribute("placeholder", "Ex.: " + exemplos[0] + "...");
+    if (!reduzMovimento) {
+        setInterval(function () {
+            if (document.activeElement === campoBusca) return;
+            i = (i + 1) % exemplos.length;
+            campoBusca.setAttribute("placeholder", "Ex.: " + exemplos[i] + "...");
+        }, 2600);
+    }
+
+    // --- Autocomplete de categorias reais (nada inventado: vem do catálogo) ---
+    var todasCategorias = {{ nomes_categorias | default([]) | tojson }};
+    var caixa = document.getElementById("autocompleteHero");
+    var lista = document.getElementById("autocompleteHeroLista");
+
+    function renderSugestoes(itens) {
+        lista.innerHTML = "";
+        itens.slice(0, 6).forEach(function (nome) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "busca-autocomplete-item";
+            btn.textContent = nome;
+            btn.addEventListener("mousedown", function (e) {
+                e.preventDefault();
+                campoBusca.value = nome;
+                caixa.classList.remove("aberto");
+                campoBusca.form.submit();
+            });
+            lista.appendChild(btn);
+        });
+    }
+
+    campoBusca.addEventListener("focus", function () {
+        renderSugestoes(todasCategorias);
+        if (todasCategorias.length) caixa.classList.add("aberto");
+    });
+    campoBusca.addEventListener("input", function () {
+        var termo = campoBusca.value.trim().toLowerCase();
+        var filtradas = termo
+            ? todasCategorias.filter(function (n) { return n.toLowerCase().indexOf(termo) !== -1; })
+            : todasCategorias;
+        renderSugestoes(filtradas);
+        caixa.classList.toggle("aberto", filtradas.length > 0);
+    });
+    campoBusca.addEventListener("blur", function () {
+        setTimeout(function () { caixa.classList.remove("aberto"); }, 120);
+    });
+
+    // --- Localização ---
     var btn = document.getElementById("btnLocalizacaoHero");
     var status = document.getElementById("statusLocalizacaoHero");
 
@@ -114,28 +173,43 @@
             { enableHighAccuracy: true, timeout: 10000 }
         );
     });
+
+    // Feedback de "procurando" no botão principal — a navegação é uma troca
+    // de página normal (sem backend de busca em tempo real), então isso é
+    // só uma pista visual de que o clique foi registrado.
+    document.querySelector("#hero-busca").form.addEventListener("submit", function () {
+        var btnBuscar = document.getElementById("btnBuscarHero");
+        btnBuscar.disabled = true;
+        btnBuscar.textContent = "Procurando...";
+    });
 })();
 </script>
 
-<h2 id="categorias" class="h5 fw-semibold text-center mb-3">Serviços populares</h2>
-<div class="row row-cols-3 row-cols-md-5 g-3 mb-2">
+<h2 id="categorias" class="h5 fw-semibold text-center mb-3 reveal">Serviços populares</h2>
+<div class="row row-cols-2 row-cols-md-5 g-3 mb-2 reveal">
     {% for c in categorias_destaque[:5] %}
     <div class="col">
         <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
             <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
             <span class="category-label">{{ c.nome }}</span>
+            {% if categoria_descricao(c.nome) %}
+                <span class="categoria-destaque-desc">{{ categoria_descricao(c.nome) }}</span>
+            {% endif %}
         </a>
     </div>
     {% endfor %}
 </div>
-<details class="mb-5 text-center">
+<details class="mb-5 text-center reveal">
     <summary class="ver-todas-categorias">+ Ver todas as categorias</summary>
-    <div class="row row-cols-3 row-cols-md-5 g-3 mt-1 text-start">
+    <div class="row row-cols-2 row-cols-md-5 g-3 mt-1 text-start">
         {% for c in categorias_destaque[5:] %}
         <div class="col">
             <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
                 <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
                 <span class="category-label">{{ c.nome }}</span>
+                {% if categoria_descricao(c.nome) %}
+                    <span class="categoria-destaque-desc">{{ categoria_descricao(c.nome) }}</span>
+                {% endif %}
             </a>
         </div>
         {% endfor %}
@@ -148,62 +222,103 @@
     </div>
 </details>
 
-<h2 id="como-funciona" class="h4 fw-semibold text-center mb-1">É simples. Você encontra, escolhe e chama.</h2>
-<p class="text-muted text-center mb-4">Veja como funciona pra cada lado.</p>
-<div class="row justify-content-center g-4 mb-5">
-    <div class="col-md-5">
-        <div class="como-funciona-card">
-            <h5 class="fw-bold mb-3">🙋 Pra quem quer contratar</h5>
-            <div class="d-flex align-items-start gap-3 mb-3">
-                <span class="step-num">1</span>
-                <div><strong>Busque</strong><br><span class="text-muted small">Digite o serviço que você precisa ou filtre por categoria e bairro — sem precisar de conta.</span></div>
-            </div>
-            <div class="d-flex align-items-start gap-3 mb-3">
-                <span class="step-num">2</span>
-                <div><strong>Escolha</strong><br><span class="text-muted small">Compare perfis e avaliações de outros clientes antes de decidir.</span></div>
-            </div>
-            <div class="d-flex align-items-start gap-3">
-                <span class="step-num">3</span>
-                <div><strong>Converse</strong><br><span class="text-muted small">Fale direto no WhatsApp — sem intermediário, sem taxa.</span></div>
+{% if profissionais_destaque %}
+<h2 class="h5 fw-semibold text-center mb-1 reveal">Profissionais perto de você</h2>
+<p class="text-muted text-center mb-4 reveal">Já estão no catálogo, prontos pra ajudar.</p>
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-5 reveal">
+    {% for p in profissionais_destaque %}
+    <div class="col">
+        <div class="card-prof-destaque">
+            {% if p.foto_url %}
+                <img src="{{ p.foto_url }}" class="card-prof-destaque-foto" alt="{{ p.usuario.nome }}">
+            {% else %}
+                <div class="card-prof-destaque-foto-vazia">📷</div>
+            {% endif %}
+            <div class="card-prof-destaque-body">
+                <h6 class="mb-1">{{ p.usuario.nome }}</h6>
+                {% if p.eh_medico and p.especialidade_medica %}
+                    <span class="badge bg-info text-dark mb-1">🩺 {{ p.especialidade_medica }}</span>
+                {% else %}
+                    {% for cat in p.categorias[:1] %}
+                        <span class="badge bg-secondary mb-1">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
+                    {% endfor %}
+                {% endif %}
+                <p class="text-muted small mb-1">📍 {{ p.cidade or '' }}</p>
+                {% if p.total_avaliacoes > 0 %}
+                    <p class="small mb-2">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }})</span></p>
+                {% else %}
+                    <p class="small text-muted mb-2">Novo no catálogo</p>
+                {% endif %}
+                <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm w-100 mt-auto">Ver perfil</a>
             </div>
         </div>
     </div>
-    <div class="col-md-5">
-        <div class="como-funciona-card">
-            <h5 class="fw-bold mb-3">🛠️ Pra quem quer trabalhar</h5>
-            <div class="d-flex align-items-start gap-3 mb-3">
-                <span class="step-num">1</span>
-                <div><strong>Cadastre-se de graça</strong><br><span class="text-muted small">Conte suas categorias, cidade e um pouco do seu trabalho.</span></div>
-            </div>
-            <div class="d-flex align-items-start gap-3 mb-3">
-                <span class="step-num">2</span>
-                <div><strong>Aguarde a aprovação</strong><br><span class="text-muted small">É rápido — a gente confere pra manter o catálogo confiável.</span></div>
-            </div>
-            <div class="d-flex align-items-start gap-3">
-                <span class="step-num">3</span>
-                <div><strong>Apareça pra quem procura</strong><br><span class="text-muted small">Receba contato direto de clientes perto de você.</span></div>
-            </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<h2 id="como-funciona" class="h4 fw-semibold text-center mb-1 reveal">Resolver ficou mais simples.</h2>
+<p class="text-muted text-center mb-4 reveal">Três passos, do jeito mais direto possível.</p>
+<div class="row justify-content-center g-4 mb-5 passos-linha reveal">
+    <div class="col-md-3">
+        <div class="passo-card">
+            <div class="passo-numero">01</div>
+            <div class="passo-titulo">BUSQUE</div>
+            <p class="text-muted small mb-0">Encontre o profissional que você precisa.</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="passo-card">
+            <div class="passo-numero">02</div>
+            <div class="passo-titulo">ESCOLHA</div>
+            <p class="text-muted small mb-0">Veja perfil, avaliações e localização.</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="passo-card">
+            <div class="passo-numero">03</div>
+            <div class="passo-titulo">CONVERSE</div>
+            <p class="text-muted small mb-0">Fale diretamente com o profissional.</p>
         </div>
     </div>
 </div>
 
-<div class="pro-cta-panel mb-5">
+<div class="row g-4 mb-5 reveal">
+    <div class="col-md-6">
+        <div class="split-publico split-cliente">
+            <div class="split-publico-icone">🙋</div>
+            <h3 class="h5 fw-bold mb-2">Precisa de ajuda?</h3>
+            <p class="text-muted mb-4">Encontre profissionais perto de você.</p>
+            <a href="/?explorar=1" class="btn btn-primary fw-semibold">Encontrar profissional</a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="split-publico split-profissional">
+            <div class="split-publico-icone">🛠️</div>
+            <h3 class="h5 fw-bold mb-2">É profissional?</h3>
+            <p class="mb-4">Mostre seu trabalho para novos clientes.</p>
+            <a href="/comecar?tipo=profissional" class="btn btn-light fw-semibold">Cadastrar meu serviço</a>
+        </div>
+    </div>
+</div>
+
+<div class="pro-cta-panel mb-5 reveal">
     <div class="row align-items-center g-4">
         <div class="col-lg-7">
-            <h2 class="h3 fw-bold mb-3">Você presta serviços? Encontre novos clientes.</h2>
+            <h2 class="h3 fw-bold mb-3">Seu próximo cliente pode estar procurando por você.</h2>
             <p class="mb-4">
-                Cadastre seu perfil gratuitamente e apareça para pessoas que estão
-                procurando exatamente pelo serviço que você oferece.
+                Cadastre seu serviço gratuitamente e apareça para pessoas que
+                procuram profissionais na sua região.
             </p>
             <ul class="list-unstyled pro-cta-checklist mb-4">
                 <li>✓ Cadastro gratuito</li>
-                <li>✓ Mais visibilidade</li>
                 <li>✓ Clientes da sua região</li>
-                <li>✓ Contato direto pelo WhatsApp</li>
-                <li>✓ Sem intermediários</li>
+                <li>✓ Mais visibilidade</li>
+                <li>✓ Contato direto</li>
+                <li>✓ Seu perfil profissional</li>
             </ul>
             <a href="/comecar?tipo=profissional" class="btn btn-light btn-lg fw-semibold">
-                Cadastrar meu serviço gratuitamente
+                Quero cadastrar meu serviço
             </a>
         </div>
         <div class="col-lg-5 text-center d-none d-lg-block">
@@ -212,12 +327,12 @@
     </div>
 </div>
 
-<h2 class="h4 fw-semibold text-center mb-4">Por que usar o SocorreAqui?</h2>
-<div class="row row-cols-2 row-cols-md-3 g-4 mb-5">
+<h2 class="h4 fw-semibold text-center mb-4 reveal">Por que usar o SocorreAqui?</h2>
+<div class="row row-cols-2 row-cols-md-3 g-4 mb-5 reveal">
     <div class="col">
         <div class="diferencial-card">
-            <div class="category-icon mx-auto mb-2">💰</div>
-            <div class="small fw-semibold">Sem taxa pra encontrar profissionais</div>
+            <div class="category-icon mx-auto mb-2">🛡️</div>
+            <div class="small fw-semibold">Perfis organizados</div>
         </div>
     </div>
     <div class="col">
@@ -228,26 +343,37 @@
     </div>
     <div class="col">
         <div class="diferencial-card">
-            <div class="category-icon mx-auto mb-2">💬</div>
-            <div class="small fw-semibold">Contato direto pelo WhatsApp</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="diferencial-card">
             <div class="category-icon mx-auto mb-2">⭐</div>
             <div class="small fw-semibold">Avaliações de clientes</div>
         </div>
     </div>
     <div class="col">
         <div class="diferencial-card">
-            <div class="category-icon mx-auto mb-2">🔎</div>
-            <div class="small fw-semibold">Busca simples e rápida</div>
+            <div class="category-icon mx-auto mb-2">💬</div>
+            <div class="small fw-semibold">Contato direto</div>
         </div>
     </div>
     <div class="col">
         <div class="diferencial-card">
-            <div class="category-icon mx-auto mb-2">🛡️</div>
-            <div class="small fw-semibold">Mais confiança pra contratar</div>
+            <div class="category-icon mx-auto mb-2">🔎</div>
+            <div class="small fw-semibold">Busca rápida</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="diferencial-card">
+            <div class="category-icon mx-auto mb-2">💰</div>
+            <div class="small fw-semibold">Sem taxa para encontrar profissionais</div>
+        </div>
+    </div>
+</div>
+
+<div class="landing-hero mb-4 reveal">
+    <div class="landing-hero-content">
+        <h2 class="h3 fw-bold mb-3">Precisa de ajuda?</h2>
+        <p class="lead mb-4">Encontre um profissional perto de você.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="/?explorar=1" class="btn btn-light btn-lg fw-semibold">Encontrar profissional</a>
+            <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
         </div>
     </div>
 </div>

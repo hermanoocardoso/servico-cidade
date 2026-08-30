@@ -2,91 +2,92 @@
 {% block titulo %}{{ perfil.usuario.nome }}{% endblock %}
 
 {% block conteudo %}
-<a href="/" class="btn btn-link ps-0">&larr; Voltar ao catálogo</a>
+<a href="/" class="btn btn-link ps-0 mb-2">&larr; Voltar ao catálogo</a>
 
-<div class="row mt-2">
-    <div class="col-md-4 text-center">
-        {% if perfil.foto_url %}
-            <img src="{{ perfil.foto_url }}" class="foto-perfil-publico shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
-        {% else %}
-            <div class="foto-perfil-publico sem-foto d-flex align-items-center justify-content-center mb-3">
-                <span>📷 Sem foto</span>
-            </div>
-        {% endif %}
-
-        {% if usuario %}
-        <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
-           href="https://wa.me/{{ perfil.whatsapp_numero }}"
-           target="_blank" rel="noopener">
-           {{ whatsapp_icon(18) }}
-           Chamar no WhatsApp
-        </a>
-        <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
-        {% else %}
-        <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
-           href="/comecar?tipo=cliente">
-           {{ whatsapp_icon(18) }}
-           Entrar para chamar no WhatsApp
-        </a>
-        <p class="text-muted small mb-0">Criar uma conta é grátis e leva menos de um minuto.</p>
-        {% endif %}
-    </div>
-
-    <div class="col-md-8">
-        <h2>{{ perfil.usuario.nome }}</h2>
-
-        {% if perfil.eh_medico %}
-        <div class="p-3 mb-3 info-medica">
-            {% if perfil.especialidade_medica %}
-                <p class="fs-5 mb-1"><strong>🩺 {{ perfil.especialidade_medica }}</strong></p>
+<div class="perfil-publico-card mb-4">
+    <div class="row g-4">
+        <div class="col-md-4 text-center">
+            {% if perfil.foto_url %}
+                <img src="{{ perfil.foto_url }}" class="foto-perfil-publico shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
+            {% else %}
+                <div class="foto-perfil-publico sem-foto d-flex align-items-center justify-content-center mb-3">
+                    <span>📷 Sem foto</span>
+                </div>
             {% endif %}
-            {% if perfil.crm %}
-                <p class="text-muted small mb-2">{{ perfil.crm }}</p>
-            {% endif %}
-            {% if perfil.atende_convenio == True %}
-                <p class="mb-0">
-                    <span class="badge bg-success">✅ Atende por convênio</span>
-                    {% if perfil.convenios_aceitos %}
-                        <span class="text-muted small ms-1">{{ perfil.convenios_aceitos }}</span>
-                    {% endif %}
-                </p>
-            {% elif perfil.atende_convenio == False %}
-                <p class="mb-0"><span class="badge bg-secondary">💳 Atendimento particular (sem convênio)</span></p>
+
+            {% if usuario %}
+            <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
+               href="https://wa.me/{{ perfil.whatsapp_numero }}"
+               target="_blank" rel="noopener">
+               {{ whatsapp_icon(18) }}
+               Chamar no WhatsApp
+            </a>
+            <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
+            {% else %}
+            <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
+               href="/comecar?tipo=cliente">
+               {{ whatsapp_icon(18) }}
+               Entrar para chamar no WhatsApp
+            </a>
+            <p class="text-muted small mb-0">Criar uma conta é grátis e leva menos de um minuto.</p>
             {% endif %}
         </div>
-        {% endif %}
 
-        <p>
-            {% for cat in perfil.categorias %}
-                <span class="badge bg-secondary">{{ cat.nome }}</span>
-            {% endfor %}
-        </p>
-        <p class="text-muted">{{ perfil.bairro or '' }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade or '' }}</p>
+        <div class="col-md-8">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                <h1 class="h3 mb-0">{{ perfil.usuario.nome }}</h1>
+                {% if perfil.total_avaliacoes > 0 %}
+                    <span class="badge-avaliacao">⭐ {{ perfil.nota_media }} <span class="text-muted fw-normal">({{ perfil.total_avaliacoes }})</span></span>
+                {% else %}
+                    <span class="badge-avaliacao badge-avaliacao-novo">Novo no catálogo</span>
+                {% endif %}
+            </div>
 
-        {% if perfil.atende_domicilio %}
-            <p><span class="badge bg-info text-dark">🏠 Atende em domicílio</span></p>
-        {% endif %}
+            {% if perfil.eh_medico %}
+            <div class="p-3 mb-3 info-medica">
+                {% if perfil.especialidade_medica %}
+                    <p class="fs-5 mb-1"><strong>🩺 {{ perfil.especialidade_medica }}</strong></p>
+                {% endif %}
+                {% if perfil.crm %}
+                    <p class="text-muted small mb-2">{{ perfil.crm }}</p>
+                {% endif %}
+                {% if perfil.atende_convenio == True %}
+                    <p class="mb-0">
+                        <span class="badge bg-success">✅ Atende por convênio</span>
+                        {% if perfil.convenios_aceitos %}
+                            <span class="text-muted small ms-1">{{ perfil.convenios_aceitos }}</span>
+                        {% endif %}
+                    </p>
+                {% elif perfil.atende_convenio == False %}
+                    <p class="mb-0"><span class="badge bg-secondary">💳 Atendimento particular (sem convênio)</span></p>
+                {% endif %}
+            </div>
+            {% endif %}
 
-        {% if perfil.total_avaliacoes > 0 %}
-            <p class="fs-5">⭐ {{ perfil.nota_media }} <span class="text-muted fs-6">({{ perfil.total_avaliacoes }} avaliações)</span></p>
-        {% else %}
-            <p class="text-muted">Ainda sem avaliações</p>
-        {% endif %}
+            <p class="mb-2">
+                {% for cat in perfil.categorias %}
+                    <span class="badge bg-secondary">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
+                {% endfor %}
+                {% if perfil.atende_domicilio %}
+                    <span class="badge bg-info text-dark">🏠 Atende em domicílio</span>
+                {% endif %}
+            </p>
+            <p class="text-muted mb-3">📍 {{ perfil.bairro or '' }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade or '' }}</p>
 
-        {% if perfil.valor_mao_de_obra %}
-            <p><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
-        {% endif %}
+            {% if perfil.valor_mao_de_obra %}
+                <p class="mb-2"><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
+            {% endif %}
 
-        {% if perfil.descricao %}
-            <p>{{ perfil.descricao }}</p>
-        {% endif %}
+            {% if perfil.descricao %}
+                <h2 class="h6 fw-semibold mt-3 mb-1">Sobre</h2>
+                <p class="mb-0">{{ perfil.descricao }}</p>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<hr class="my-4">
-
 {% if usuario and pode_avaliar %}
-<div class="card mb-4 recomendacao-card">
+<div class="card mb-4 recomendacao-card reveal">
     <div class="card-body">
         <h4 class="mb-1">⭐ Deixe aqui sua recomendação</h4>
         <p class="text-muted small mb-3">
@@ -125,7 +126,7 @@
     </div>
 </div>
 {% elif not usuario %}
-<div class="card mb-4 recomendacao-card">
+<div class="card mb-4 recomendacao-card reveal">
     <div class="card-body text-center">
         <h4 class="mb-2">⭐ Deixe aqui sua recomendação</h4>
         <p class="mb-3">Entre ou crie uma conta grátis pra avaliar e recomendar este profissional.</p>
@@ -137,15 +138,17 @@
 <p class="text-muted small mb-4">Esse é o seu perfil — você não pode avaliar a si mesmo.</p>
 {% endif %}
 
-<h4 class="mb-3">Recomendações de clientes</h4>
+<h2 class="h5 fw-semibold mb-3">Recomendações de clientes</h2>
 {% if avaliacoes %}
+    <div class="d-flex flex-column gap-2 mb-3">
     {% for r in avaliacoes %}
-    <div class="border-bottom pb-2 mb-2">
-        <strong class="text-warning">{{ "★" * r.estrelas }}</strong>
-        <span class="text-muted small">— {{ r.cliente.nome }}</span>
-        {% if r.comentario %}<p class="mb-0">{{ r.comentario }}</p>{% endif %}
+    <div class="avaliacao-card">
+        <strong class="text-warning">{{ "★" * r.estrelas }}</strong><strong class="text-muted">{{ "★" * (5 - r.estrelas) }}</strong>
+        <span class="text-muted small ms-1">— {{ r.cliente.nome }}</span>
+        {% if r.comentario %}<p class="mb-0 mt-1">{{ r.comentario }}</p>{% endif %}
     </div>
     {% endfor %}
+    </div>
 {% else %}
     <p class="text-muted">Nenhuma recomendação ainda. Seja o primeiro a avaliar!</p>
 {% endif %}

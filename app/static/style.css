@@ -5,12 +5,26 @@
     --cor-primaria-rgb: 30, 79, 224;
     --cor-secundaria: #1FC8E0;
     --cor-secundaria-rgb: 31, 200, 224;
+    --cor-sucesso: #16A34A;
     --cor-fundo: #F6F7FB;
     --cor-texto: #1F2333;
     --cor-texto-suave: #6B7280;
-    --raio: 14px;
+    --raio: 16px;
+    --raio-pequeno: 10px;
     --sombra: 0 2px 10px rgba(31, 35, 51, 0.06);
     --sombra-hover: 0 12px 24px rgba(31, 35, 51, 0.10);
+    --transicao: 200ms ease;
+}
+
+/* Desliga toda microinteração/animação pra quem pediu isso no sistema —
+   acessibilidade, não é opcional. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 body {
@@ -26,20 +40,44 @@ h1, h2, h3, h4, h5, h6 {
 a {
     color: var(--cor-primaria);
 }
+/* Sublinhado animado em links de texto corrido (rodapé, itens de menu) —
+   discreto, some se a pessoa não estiver com o mouse por perto. */
+.site-footer-full ul a,
+.dropdown-item {
+    position: relative;
+}
 
 /* --- Navbar --- */
 .navbar.bg-primary {
     background-color: var(--cor-primaria) !important;
     box-shadow: 0 2px 12px rgba(var(--cor-primaria-rgb), 0.28);
+    transition: padding var(--transicao), box-shadow var(--transicao);
 }
 .navbar-brand {
     letter-spacing: 0.2px;
 }
+/* Header fica "grudado" no topo e encolhe discretamente ao rolar (JS troca
+   essa classe) — mantém a marca visível sem pesar a tela. */
+.navbar.sticky-top {
+    top: 0;
+}
+.navbar.navbar-scrolled {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    box-shadow: 0 4px 16px rgba(31, 35, 51, 0.12);
+}
 
 /* --- Botões --- */
 .btn {
-    border-radius: 10px;
+    border-radius: var(--raio-pequeno);
     font-weight: 500;
+    transition: transform 150ms ease, box-shadow var(--transicao), background-color var(--transicao);
+}
+.btn:hover {
+    transform: translateY(-1px);
+}
+.btn:active {
+    transform: translateY(0) scale(0.97);
 }
 /* Um <a> estilizado como botão (ex: "Entrar com Google") não pode herdar a
    cor padrão de "link visitado" do navegador (fica roxo/marrom) -- trava
@@ -233,6 +271,35 @@ a.btn:visited {
     object-fit: cover;
     border-radius: var(--raio);
     font-size: 1.6rem;
+}
+
+/* Cartão principal do perfil público (foto + dados) */
+.perfil-publico-card {
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.75rem;
+}
+.badge-avaliacao {
+    background: #FFF6DB;
+    color: #92650A;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.badge-avaliacao-novo {
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+.avaliacao-card {
+    background: #fff;
+    border-radius: var(--raio-pequeno);
+    box-shadow: var(--sombra);
+    padding: 0.9rem 1.1rem;
 }
 
 /* --- Catálogo: card horizontal (foto + info + ações lado a lado) --- */
@@ -645,6 +712,58 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     padding: 0.6rem 1.5rem;
     flex-shrink: 0;
 }
+/* Destaque sutil de foco no componente inteiro, não só no input —
+   fica claro que a busca é a ação principal da tela. */
+.busca-combo:focus-within {
+    box-shadow: 0 0 0 3px rgba(var(--cor-primaria-rgb), 0.25), 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Autocomplete de categorias sob o campo de busca — sugestões reais (vêm
+   das categorias já cadastradas), nunca texto inventado. */
+.busca-combo-wrap {
+    position: relative;
+}
+.busca-autocomplete {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-hover);
+    padding: 0.5rem;
+    z-index: 30;
+    text-align: left;
+    display: none;
+}
+.busca-autocomplete.aberto {
+    display: block;
+}
+.busca-autocomplete-titulo {
+    color: var(--cor-texto-suave);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.6rem;
+}
+.busca-autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+    padding: 0.55rem 0.6rem;
+    border-radius: 10px;
+    color: var(--cor-texto);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.busca-autocomplete-item:hover,
+.busca-autocomplete-item.ativo {
+    background: #EEF1FF;
+}
 @media (max-width: 700px) {
     .busca-combo {
         flex-direction: column;
@@ -676,19 +795,151 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
     text-decoration: none;
     color: var(--cor-texto);
     text-align: center;
     background: #fff;
+    border: 1px solid transparent;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
-    padding: 1rem 0.5rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 1.25rem 0.75rem;
+    height: 100%;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
 }
 .categoria-destaque-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     box-shadow: var(--sombra-hover);
+    border-color: rgba(var(--cor-primaria-rgb), 0.35);
+}
+.categoria-destaque-card:hover .category-icon {
+    transform: scale(1.08) rotate(-4deg);
+}
+.categoria-destaque-desc {
+    color: var(--cor-texto-suave);
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+/* --- Scroll reveal: seções entram suavemente conforme a rolagem --- */
+.reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 500ms ease, transform 500ms ease;
+}
+.reveal.reveal-visivel {
+    opacity: 1;
+    transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+    .reveal {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* --- "Como funciona": passos numerados com linha conectando --- */
+.passos-linha {
+    position: relative;
+}
+.passos-linha::before {
+    content: "";
+    position: absolute;
+    top: 28px;
+    left: 8%;
+    right: 8%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #D7DDFF 15%, #D7DDFF 85%, transparent);
+    z-index: 0;
+}
+@media (max-width: 767px) {
+    .passos-linha::before { display: none; }
+}
+.passo-card {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.75rem 1.5rem;
+    height: 100%;
+    text-align: center;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.passo-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sombra-hover);
+}
+.passo-numero {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(var(--cor-primaria-rgb), 0.3);
+}
+.passo-titulo {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-size: 0.85rem;
+    color: var(--cor-primaria);
+    margin-bottom: 0.35rem;
+}
+
+/* --- Split "Precisa de ajuda?" / "É profissional?" --- */
+.split-publico {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-radius: var(--raio);
+    padding: 2.5rem 2rem;
+    height: 100%;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.split-publico:hover {
+    transform: translateY(-4px);
+}
+.split-publico-icone {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+.split-cliente {
+    background: linear-gradient(160deg, #EEF5FF 0%, #fff 60%);
+    border: 1px solid #DCE7FF;
+    box-shadow: var(--sombra);
+}
+.split-cliente .split-publico-icone {
+    background: #DCE7FF;
+}
+.split-cliente:hover {
+    box-shadow: var(--sombra-hover);
+}
+.split-profissional {
+    background: linear-gradient(160deg, #0B1B4D 0%, var(--cor-primaria-escura) 100%);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(11, 27, 77, 0.28);
+}
+.split-profissional .split-publico-icone {
+    background: rgba(255, 255, 255, 0.14);
+}
+.split-profissional p {
+    color: rgba(255, 255, 255, 0.85);
+}
+.split-profissional:hover {
+    box-shadow: 0 18px 36px rgba(11, 27, 77, 0.35);
 }
 
 /* Painel de destaque pra atrair profissionais — fundo escuro, separado
@@ -726,6 +977,48 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     padding: 1.5rem 1rem;
     text-align: center;
     height: 100%;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.diferencial-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sombra-hover);
+}
+
+/* Card vertical de "Profissionais perto de você" na home — mesma
+   linguagem visual do card horizontal do catálogo, só que empilhado. */
+.card-prof-destaque {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    overflow: hidden;
+    height: 100%;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.card-prof-destaque:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sombra-hover);
+}
+.card-prof-destaque-foto {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+}
+.card-prof-destaque-foto-vazia {
+    width: 100%;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EEF0F7;
+    font-size: 1.8rem;
+}
+.card-prof-destaque-body {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Cards clicáveis "Já tenho conta" / "Ainda não tenho conta" (/comecar) */
