@@ -17,28 +17,33 @@
         </div>
         <a href="/" class="btn btn-outline-primary">Voltar ao catálogo</a>
         {% else %}
+
+        {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+        {% endif %}
+
         <form method="post" action="/indicar">
             <div class="mb-3">
                 <label class="form-label">Nome do profissional</label>
-                <input type="text" name="nome_profissional" class="form-control" required>
+                <input type="text" name="nome_profissional" value="{{ valores.nome_profissional if valores else '' }}" class="form-control" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Telefone / WhatsApp dele(a)</label>
-                <input type="tel" name="telefone_profissional" class="form-control" placeholder="(22) 99999-9999" required>
+                <input type="tel" name="telefone_profissional" value="{{ valores.telefone_profissional if valores else '' }}" class="form-control" placeholder="(22) 99999-9999" required>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Categoria (se souber)</label>
-                    <select name="categoria_id" class="form-select">
-                        <option value="">Não sei / outro</option>
+                    <label class="form-label">Categoria</label>
+                    <select name="categoria_id" class="form-select" required>
+                        <option value="" disabled {% if not valores or not valores.categoria_id %}selected{% endif %}>Selecione a categoria</option>
                         {% for c in categorias %}
-                        <option value="{{ c.id }}">{{ c.nome }}</option>
+                        <option value="{{ c.id }}" {% if valores and valores.categoria_id == c.id|string %}selected{% endif %}>{{ c.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Cidade / bairro</label>
-                    <input type="text" name="cidade" class="form-control">
+                    <input type="text" name="cidade" value="{{ valores.cidade if valores else '' }}" class="form-control" required>
                 </div>
             </div>
             <div class="mb-4">

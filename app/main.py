@@ -763,17 +763,47 @@ def indicar(
     if not usuario:
         return RedirectResponse("/login", status_code=303)
 
+    nome_profissional = nome_profissional.strip()
+    telefone_profissional = telefone_profissional.strip()
+    cidade = cidade.strip()
+
     try:
         categoria_id_int = int(categoria_id) if categoria_id else None
     except ValueError:
         categoria_id_int = None
 
+    def erro(mensagem):
+        categorias = db.query(models.Category).order_by(models.Category.nome).all()
+        return templates.TemplateResponse(
+            "indicar.html",
+            {
+                "request": request, "usuario": usuario, "categorias": categorias, "enviado": False,
+                "erro": mensagem,
+                "valores": {
+                    "nome_profissional": nome_profissional,
+                    "telefone_profissional": telefone_profissional,
+                    "categoria_id": categoria_id,
+                    "cidade": cidade,
+                },
+            },
+        )
+
+    # Nome/telefone já são obrigatórios no HTML, mas a categoria e a cidade
+    # também precisam vir preenchidas — sem isso não dá pra saber o que
+    # oferecer nem onde a pessoa atende na hora de convidar ela pra plataforma.
+    if not nome_profissional or not telefone_profissional:
+        return erro("Preencha o nome e o telefone do profissional.")
+    if not categoria_id_int:
+        return erro("Selecione a categoria do profissional.")
+    if not cidade:
+        return erro("Informe a cidade/bairro do profissional.")
+
     indicacao = models.Indicacao(
         indicado_por_id=usuario.id,
-        nome_profissional=nome_profissional.strip(),
-        telefone_profissional=telefone_profissional.strip(),
+        nome_profissional=nome_profissional,
+        telefone_profissional=telefone_profissional,
         categoria_id=categoria_id_int,
-        cidade=cidade.strip() or None,
+        cidade=cidade,
         observacao=observacao.strip() or None,
     )
     db.add(indicacao)
