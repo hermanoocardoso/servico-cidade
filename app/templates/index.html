@@ -33,9 +33,15 @@
             {% endif %}
             <div class="d-flex gap-1">
                 <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm w-100">Ver perfil</a>
+                {% if usuario %}
                 <a href="https://wa.me/{{ p.whatsapp_numero }}" target="_blank" rel="noopener" class="btn btn-success btn-sm d-inline-flex align-items-center" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp">
                     {{ whatsapp_icon(16) }}
                 </a>
+                {% else %}
+                <a href="/comecar?tipo=cliente" class="btn btn-success btn-sm d-inline-flex align-items-center" title="Entrar para chamar no WhatsApp" aria-label="Entrar para chamar no WhatsApp">
+                    {{ whatsapp_icon(16) }}
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -45,19 +51,28 @@
 {% block conteudo %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div>
-        <span class="text-muted">Olá, {{ usuario.nome.split(" ")[0] }} 👋</span>
+        {% if usuario %}
+            <span class="text-muted">Olá, {{ usuario.nome.split(" ")[0] }} 👋</span>
+        {% else %}
+            <span class="text-muted">Veja quem pode te ajudar agora.</span>
+        {% endif %}
     </div>
     <div class="d-flex flex-wrap gap-2">
-        {% if usuario.tipo == "profissional" %}
-            <a href="/profissional/perfil/editar" class="btn-chip">Meu perfil</a>
-            {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
-                <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn-chip">Perfil público</a>
+        {% if usuario %}
+            {% if usuario.tipo == "profissional" %}
+                <a href="/profissional/perfil/editar" class="btn-chip">Meu perfil</a>
+                {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
+                    <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="btn-chip">Perfil público</a>
+                {% endif %}
             {% endif %}
-        {% endif %}
-        <a href="/indicar" class="btn-chip">Indicar</a>
-        <a href="/minha-localizacao" class="btn-chip">Meus dados</a>
-        {% if eh_admin_usuario %}
-            <a href="/admin" class="btn-chip">Admin</a>
+            <a href="/indicar" class="btn-chip">Indicar</a>
+            <a href="/minha-localizacao" class="btn-chip">Meus dados</a>
+            {% if eh_admin_usuario %}
+                <a href="/admin" class="btn-chip">Admin</a>
+            {% endif %}
+        {% else %}
+            <a href="/comecar?tipo=cliente" class="btn-chip">Entrar</a>
+            <a href="/comecar?tipo=profissional" class="btn-chip">Sou profissional</a>
         {% endif %}
     </div>
 </div>
@@ -113,15 +128,29 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         var end = data.address || {};
-                        var local = end.suburb || end.neighbourhood || end.city_district || end.quarter
-                            || end.city || end.town || end.municipality || "";
-                        if (local) {
+                        // A cidade é o dado mais confiável pra achar profissionais (nem
+                        // todo mundo cadastra o bairro certinho) — o bairro só entra como
+                        // informação extra, mostrada mas não usada sozinha na busca.
+                        var cidade = end.city || end.town || end.municipality || "";
+                        var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
+                        btn.disabled = false;
+                        if (cidade || bairro) {
+                            var local = cidade || bairro;
                             inputCidade.value = local;
-                            status.textContent = "";
-                            window.location.href = "/?cidade=" + encodeURIComponent(local);
+                            var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
+                            // Não redireciona sozinho: geolocalização de navegador (sem GPS
+                            // de verdade, como em notebook) pode errar bastante. Só preenche
+                            // o campo e pede confirmação de um clique antes de buscar.
+                            status.innerHTML = "📍 Você está em <strong>" + onde + "</strong> — " +
+                                '<a href="#" id="linkConfirmarCheckin" class="fw-semibold">buscar profissionais aqui</a>' +
+                                " (ou corrija o campo ao lado).";
+                            document.getElementById("linkConfirmarCheckin").addEventListener("click", function (e) {
+                                e.preventDefault();
+                                inputCidade.value = local;
+                                inputCidade.form.submit();
+                            });
                         } else {
-                            btn.disabled = false;
-                            status.textContent = "Não consegui identificar seu bairro. Digite manualmente acima.";
+                            status.textContent = "Não consegui identificar sua cidade. Digite manualmente acima.";
                         }
                     })
                     .catch(function () {
@@ -144,7 +173,7 @@
 </script>
 
 <div class="mega-menu mb-4">
-    <a href="/" class="mega-item {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
+    <a href="/?explorar=1" class="mega-item {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
         <span class="category-icon">🔎</span>
         <span class="category-label">Todas</span>
     </a>
@@ -195,11 +224,17 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-light border">Nenhum profissional encontrado com esses filtros ainda.</div>
+<div class="alert alert-light border">
+    <p class="mb-2">Não encontramos profissionais com esses filtros ainda.</p>
+    <a href="/?explorar=1" class="btn-chip">Ver todos os profissionais</a>
+    {% if filtro_cidade %}
+        <a href="/?busca={{ filtro_busca }}&categoria={{ filtro_categoria or '' }}" class="btn-chip">Expandir área de busca</a>
+    {% endif %}
+</div>
 {% endif %}
 
 <div class="text-center mt-5 pt-3 border-top small text-muted">
-    <span>É profissional autônomo? <a href="/cadastro">Cadastre-se de graça</a></span>
+    <span>É profissional autônomo? <a href="/comecar?tipo=profissional">Cadastre-se de graça</a></span>
     <span class="mx-2">·</span>
     <span>Conhece alguém que devia estar aqui? <a href="/indicar">Indique</a></span>
 </div>

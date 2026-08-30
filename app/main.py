@@ -225,10 +225,18 @@ def catalogo(
     grupo: str | None = None,
     cidade: str | None = None,
     busca: str | None = None,
+    explorar: str | None = None,
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
-    if not usuario:
+    # Buscar e navegar o catálogo não exige conta — só pedimos login na hora
+    # de agir de verdade (chamar no WhatsApp, ligar ou avaliar). Um visitante
+    # sem nenhum filtro ainda cai na home de apresentação; qualquer busca,
+    # filtro ou clique em "ver todas as categorias" (explorar) já mostra
+    # os resultados de verdade.
+    tem_filtro = bool(categoria or grupo or cidade or busca or explorar)
+
+    if not usuario and not tem_filtro:
         categorias_destaque = (
             db.query(models.Category)
             .filter(models.Category.nome.in_(CATEGORIAS_DESTAQUE_LANDING))
@@ -624,9 +632,9 @@ def ver_profissional(
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
-    if not usuario:
-        return RedirectResponse("/login", status_code=303)
-
+    # O perfil público pode ser visto sem login — só avaliar e chamar no
+    # WhatsApp exigem conta (a própria tela já sabia lidar com usuario=None
+    # no bloco de avaliação; só faltava permitir chegar até aqui sem login).
     perfil = db.query(models.ProfessionalProfile).filter(
         models.ProfessionalProfile.id == profissional_id
     ).first()
@@ -638,9 +646,9 @@ def ver_profissional(
     # Qualquer pessoa logada pode avaliar, contanto que não seja o próprio
     # dono do perfil se autoavaliando (cliente ou profissional avaliando
     # outro profissional são ambos permitidos).
-    pode_avaliar = usuario.id != perfil.usuario_id
+    pode_avaliar = bool(usuario) and usuario.id != perfil.usuario_id
     minha_avaliacao = None
-    if pode_avaliar:
+    if usuario and pode_avaliar:
         minha_avaliacao = next((r for r in avaliacoes if r.cliente_id == usuario.id), None)
 
     return templates.TemplateResponse(

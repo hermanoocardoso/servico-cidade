@@ -14,6 +14,7 @@
             </div>
         {% endif %}
 
+        {% if usuario %}
         <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
            href="https://wa.me/{{ perfil.whatsapp_numero }}"
            target="_blank" rel="noopener">
@@ -21,6 +22,14 @@
            Chamar no WhatsApp
         </a>
         <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
+        {% else %}
+        <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
+           href="/comecar?tipo=cliente">
+           {{ whatsapp_icon(18) }}
+           Entrar para chamar no WhatsApp
+        </a>
+        <p class="text-muted small mb-0">Criar uma conta é grátis e leva menos de um minuto.</p>
+        {% endif %}
     </div>
 
     <div class="col-md-8">
@@ -143,10 +152,18 @@
 
 <div class="whatsapp-sticky-spacer d-md-none"></div>
 <div class="whatsapp-sticky-bar d-md-none">
+    {% if usuario %}
     <a href="https://wa.me/{{ perfil.whatsapp_numero }}" target="_blank" rel="noopener"
        class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold">
         {{ whatsapp_icon(20) }}
         Chamar no WhatsApp
     </a>
+    {% else %}
+    <a href="/comecar?tipo=cliente"
+       class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold">
+        {{ whatsapp_icon(20) }}
+        Entrar para chamar no WhatsApp
+    </a>
+    {% endif %}
 </div>
 {% endblock %}

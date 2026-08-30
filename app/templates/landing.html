@@ -12,20 +12,23 @@
         <span class="hero-bubble b6">🧹</span>
     </div>
     <div class="landing-hero-content">
-        <h1 class="display-6 fw-bold mb-3">Encontre o profissional certo perto de você.</h1>
+        <h1 class="display-6 fw-bold mb-3">O que você precisa resolver hoje?</h1>
         <p class="lead mb-4">
-            Eletricistas, diaristas, manicures, mecânicos, técnicos e muito mais.
-            Converse direto pelo WhatsApp, sem intermediário e sem taxa.
+            Encontre profissionais avaliados perto de você e chame no WhatsApp em poucos cliques.
         </p>
 
-        <form action="/comecar" method="get" class="hero-search mx-auto mb-3">
-            <input type="hidden" name="tipo" value="cliente">
+        <form action="/" method="get" class="hero-search mx-auto mb-2">
             <span class="hero-search-icon" aria-hidden="true">🔎</span>
             <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
             <input type="text" id="hero-busca" name="busca" class="hero-search-input"
                    placeholder="O que você precisa? Ex: eletricista, diarista, manicure...">
             <button type="submit" class="btn btn-primary hero-search-btn">Encontrar profissional</button>
         </form>
+
+        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-3">
+            📍 Usar minha localização
+        </button>
+        <div id="statusLocalizacaoHero" class="small mb-2"></div>
 
         <p class="mb-0">
             <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-sm">
@@ -35,19 +38,85 @@
     </div>
 </div>
 
+<script>
+(function () {
+    var btn = document.getElementById("btnLocalizacaoHero");
+    var status = document.getElementById("statusLocalizacaoHero");
+
+    btn.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+            status.textContent = "Seu navegador não suporta localização automática.";
+            return;
+        }
+        btn.disabled = true;
+        status.textContent = "Buscando sua localização...";
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                var lat = pos.coords.latitude, lon = pos.coords.longitude;
+                status.textContent = "Identificando sua cidade...";
+                fetch(
+                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat +
+                    "&lon=" + lon + "&zoom=16&addressdetails=1&accept-language=pt-BR"
+                )
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var end = data.address || {};
+                        // A cidade é o dado mais confiável pra achar profissionais (nem
+                        // todo mundo cadastra o bairro certinho) — o bairro só entra como
+                        // informação extra, mostrada mas não usada sozinha na busca.
+                        var cidade = end.city || end.town || end.municipality || "";
+                        var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
+                        var local = cidade || bairro;
+                        btn.disabled = false;
+                        if (local) {
+                            // Sem confirmação, um GPS impreciso (comum em notebook, sem chip
+                            // de GPS de verdade) levaria a pessoa pra resultados da cidade
+                            // errada sem ela perceber — por isso só sugere, não busca sozinho.
+                            var buscaInput = document.getElementById("hero-busca");
+                            var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
+                            status.innerHTML = "📍 Você está em <strong>" + onde + "</strong> — " +
+                                '<a href="#" id="linkBuscarLocal" class="text-white text-decoration-underline">buscar profissionais aqui</a>.';
+                            document.getElementById("linkBuscarLocal").addEventListener("click", function (e) {
+                                e.preventDefault();
+                                window.location.href = "/?cidade=" + encodeURIComponent(local) +
+                                    (buscaInput.value ? "&busca=" + encodeURIComponent(buscaInput.value) : "");
+                            });
+                        } else {
+                            status.textContent = "Não consegui identificar sua cidade. Digite na busca acima.";
+                        }
+                    })
+                    .catch(function () {
+                        btn.disabled = false;
+                        status.textContent = "Não consegui identificar seu bairro agora.";
+                    });
+            },
+            function (erro) {
+                btn.disabled = false;
+                if (erro.code === erro.PERMISSION_DENIED) {
+                    status.textContent = "Você não permitiu o acesso à localização.";
+                } else {
+                    status.textContent = "Não consegui pegar sua localização agora.";
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+})();
+</script>
+
 <h2 id="categorias" class="h4 fw-semibold text-center mb-1">O que você precisa hoje?</h2>
 <p class="text-muted text-center mb-4">Escolha uma categoria pra começar a buscar.</p>
 <div class="row row-cols-3 row-cols-md-5 g-3 mb-5">
     {% for c in categorias_destaque %}
     <div class="col">
-        <a href="/comecar?tipo=cliente" class="categoria-destaque-card">
+        <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
             <span class="category-icon">{{ categoria_emoji(c.nome) }}</span>
             <span class="category-label">{{ c.nome }}</span>
         </a>
     </div>
     {% endfor %}
     <div class="col">
-        <a href="/comecar?tipo=cliente" class="categoria-destaque-card">
+        <a href="/?explorar=1" class="categoria-destaque-card">
             <span class="category-icon">➕</span>
             <span class="category-label">Ver todas</span>
         </a>
@@ -62,7 +131,7 @@
             <h5 class="fw-bold mb-3">🙋 Pra quem quer contratar</h5>
             <div class="d-flex align-items-start gap-3 mb-3">
                 <span class="step-num">1</span>
-                <div><strong>Busque</strong><br><span class="text-muted small">Digite o serviço que você precisa ou filtre por categoria e bairro.</span></div>
+                <div><strong>Busque</strong><br><span class="text-muted small">Digite o serviço que você precisa ou filtre por categoria e bairro — sem precisar de conta.</span></div>
             </div>
             <div class="d-flex align-items-start gap-3 mb-3">
                 <span class="step-num">2</span>
@@ -163,7 +232,7 @@
         <h2 class="h3 fw-bold mb-3">Precisa de ajuda? Encontre quem pode resolver.</h2>
         <p class="lead mb-4">Pesquise agora por um profissional perto de você.</p>
         <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="/comecar?tipo=cliente" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
+            <a href="/?explorar=1" class="btn btn-light btn-lg fw-semibold">Encontrar um profissional</a>
             <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-lg fw-semibold">Sou profissional</a>
         </div>
     </div>
