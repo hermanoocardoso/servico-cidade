@@ -126,6 +126,7 @@
         navigator.geolocation.getCurrentPosition(
             function (pos) {
                 var lat = pos.coords.latitude, lon = pos.coords.longitude;
+                var precisao = Math.round(pos.coords.accuracy || 0);
                 status.textContent = "Identificando o bairro...";
                 fetch(
                     "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat +
@@ -147,9 +148,17 @@
                             // Não redireciona sozinho: geolocalização de navegador (sem GPS
                             // de verdade, como em notebook) pode errar bastante. Só preenche
                             // o campo e pede confirmação de um clique antes de buscar.
+                            // Mostra a coordenada crua + link pro mapa: se o pino aparecer no
+                            // lugar errado, o problema é a localização do aparelho, não o site
+                            // (a "precisão" reportada pelo navegador ajuda a confirmar isso —
+                            // valores de dezenas de km indicam estimativa por rede, não GPS real).
+                            var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
                             status.innerHTML = "📍 Você está em <strong>" + onde + "</strong> — " +
                                 '<a href="#" id="linkConfirmarCheckin" class="fw-semibold">buscar profissionais aqui</a>' +
-                                " (ou corrija o campo ao lado).";
+                                " (ou corrija o campo ao lado).<br>" +
+                                '<span class="text-muted">Coordenada recebida do seu aparelho: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
+                                (precisao ? " (precisão ±" + precisao.toLocaleString("pt-BR") + "m)" : "") +
+                                ' — <a href="' + linkMapa + '" target="_blank" rel="noopener">ver no mapa</a>.</span>';
                             document.getElementById("linkConfirmarCheckin").addEventListener("click", function (e) {
                                 e.preventDefault();
                                 inputCidade.value = local;
