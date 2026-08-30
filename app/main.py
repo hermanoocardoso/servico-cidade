@@ -312,6 +312,12 @@ def catalogo(
         candidatos.sort(key=lambda p: (p.nota_media, p.total_avaliacoes, p.criado_em), reverse=True)
         profissionais_destaque = candidatos[:4]
 
+        # Foto real pro hero: o melhor avaliado que tenha foto cadastrada de
+        # verdade (procura em todo mundo aprovado, não só no top 4) — se
+        # ninguém tiver foto ainda, o hero simplesmente não mostra essa
+        # coluna, em vez de usar uma imagem de banco de imagens.
+        profissional_hero = next((p for p in candidatos if p.foto_url), None)
+
         nomes_categorias = [c.nome for c in db.query(models.Category).order_by(models.Category.nome).all()]
 
         return templates.TemplateResponse(
@@ -321,6 +327,7 @@ def catalogo(
                 "categorias_destaque": categorias_destaque,
                 "cidades_destaque": cidades_mais_ativas(db),
                 "profissionais_destaque": profissionais_destaque,
+                "profissional_hero": profissional_hero,
                 "nomes_categorias": nomes_categorias,
             },
         )

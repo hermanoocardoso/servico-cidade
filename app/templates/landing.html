@@ -2,59 +2,73 @@
 {% block titulo %}SocorreAqui — precisou, encontrou. 🏃🔧⚡️{% endblock %}
 
 {% block conteudo %}
-<div class="landing-hero mb-5">
-    <div class="landing-hero-decor" aria-hidden="true">
-        <span class="hero-bubble b1">⚡</span>
-        <span class="hero-bubble b2">💇</span>
-        <span class="hero-bubble b3">🚗</span>
-        <span class="hero-bubble b4">🎉</span>
-        <span class="hero-bubble b5">🩺</span>
-        <span class="hero-bubble b6">🧹</span>
-    </div>
-    <div class="landing-hero-content">
-        <h1 class="display-6 fw-bold mb-2">Encontre quem pode <span class="text-warning">resolver</span>.</h1>
-        <p class="lead mb-4">Profissionais da sua região para serviços do dia a dia. Encontre, compare e fale direto com quem entende.</p>
+<div class="hero-claro mb-5">
+    <div class="row align-items-center g-4 g-lg-5">
+        <div class="col-lg-7">
+            <h1 class="display-5 fw-bold mb-3">Encontre quem pode <span class="text-primary">resolver</span>.</h1>
+            <p class="lead text-muted mb-4">Profissionais da sua região para serviços do dia a dia. Encontre, compare e fale direto com quem entende.</p>
 
-        <div class="busca-combo-wrap mx-auto mb-2">
-            <form action="/" method="get" class="busca-combo" autocomplete="off">
-                <div class="busca-combo-campo">
-                    <span class="busca-combo-icone" aria-hidden="true">🔎</span>
-                    <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
-                    <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa?">
+            <div class="busca-combo-wrap mb-2">
+                <form action="/" method="get" class="busca-combo busca-combo-clara" autocomplete="off">
+                    <div class="busca-combo-campo">
+                        <span class="busca-combo-icone" aria-hidden="true">🔎</span>
+                        <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
+                        <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa?">
+                    </div>
+                    <div class="busca-combo-campo busca-combo-campo-local">
+                        <span class="busca-combo-icone" aria-hidden="true">📍</span>
+                        <label for="hero-cidade" class="visually-hidden">Sua localização</label>
+                        <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
+                    </div>
+                    <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarHero">Encontrar profissional</button>
+                </form>
+                <div class="busca-autocomplete" id="autocompleteHero">
+                    <div class="busca-autocomplete-titulo">Você está procurando...</div>
+                    <div id="autocompleteHeroLista"></div>
                 </div>
-                <div class="busca-combo-campo busca-combo-campo-local">
-                    <span class="busca-combo-icone" aria-hidden="true">📍</span>
-                    <label for="hero-cidade" class="visually-hidden">Sua localização</label>
-                    <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
-                </div>
-                <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarHero">Encontrar profissional</button>
-            </form>
-            <div class="busca-autocomplete" id="autocompleteHero">
-                <div class="busca-autocomplete-titulo">Você está procurando...</div>
-                <div id="autocompleteHeroLista"></div>
             </div>
+
+            <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-decoration-none px-0 mb-1">
+                📍 Usar minha localização
+            </button>
+            {% if cidades_destaque %}
+            <details class="cidades-outras">
+                <summary>ou escolher cidade</summary>
+                <div class="cidades-outras-lista">
+                    {% for c in cidades_destaque %}
+                        <a href="/?cidade={{ c | urlencode }}" class="btn-chip">{{ c }}</a>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+            <div id="statusLocalizacaoHero" class="small text-muted mt-2 mb-2"></div>
+
+            <p class="mb-0 mt-2">
+                <a href="/comecar?tipo=profissional" class="btn btn-outline-primary btn-sm">
+                    Sou profissional — quero oferecer meus serviços
+                </a>
+            </p>
         </div>
 
-        <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-white text-decoration-none mb-1">
-            📍 Usar minha localização
-        </button>
-        {% if cidades_destaque %}
-        <details class="cidades-outras cidades-outras-hero">
-            <summary>ou escolher cidade</summary>
-            <div class="cidades-outras-lista justify-content-center">
-                {% for c in cidades_destaque %}
-                    <a href="/?cidade={{ c | urlencode }}" class="btn btn-outline-light btn-sm">{{ c }}</a>
-                {% endfor %}
+        {% if profissional_hero %}
+        <div class="col-lg-5">
+            <div class="hero-visual-wrap">
+                <img src="{{ profissional_hero.foto_url }}" class="hero-foto-profissional" alt="{{ profissional_hero.usuario.nome }}">
+                <div class="hero-review-card">
+                    <strong>{{ profissional_hero.usuario.nome.split(" ")[0] }}</strong>
+                    <div class="text-muted small">
+                        {% if profissional_hero.categorias %}{{ profissional_hero.categorias[0].nome }}{% else %}Profissional{% endif %}
+                        no SocorreAqui
+                    </div>
+                    {% if profissional_hero.total_avaliacoes > 0 %}
+                        <div class="small mt-1">⭐ {{ profissional_hero.nota_media }} <span class="text-muted">({{ profissional_hero.total_avaliacoes }})</span></div>
+                    {% else %}
+                        <div class="small text-muted mt-1">Novo no catálogo</div>
+                    {% endif %}
+                </div>
             </div>
-        </details>
+        </div>
         {% endif %}
-        <div id="statusLocalizacaoHero" class="small mt-2 mb-2"></div>
-
-        <p class="mb-0 mt-2">
-            <a href="/comecar?tipo=profissional" class="btn btn-outline-light btn-sm">
-                Sou profissional — quero oferecer meus serviços
-            </a>
-        </p>
     </div>
 </div>
 
@@ -145,10 +159,10 @@
                             var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
                             var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
                             status.innerHTML = "Você está em <strong>" + onde + "</strong> — " +
-                                '<a href="#" id="linkBuscarLocal" class="text-white text-decoration-underline">buscar profissionais aqui</a>.<br>' +
-                                '<span class="text-white-50">Coordenada recebida: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
+                                '<a href="#" id="linkBuscarLocal">buscar profissionais aqui</a>.<br>' +
+                                '<span class="text-muted">Coordenada recebida: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
                                 (precisao ? " (precisão ±" + precisao.toLocaleString("pt-BR") + "m)" : "") +
-                                ' — <a href="' + linkMapa + '" target="_blank" rel="noopener" class="text-white-50">ver no mapa</a></span>';
+                                ' — <a href="' + linkMapa + '" target="_blank" rel="noopener">ver no mapa</a></span>';
                             document.getElementById("linkBuscarLocal").addEventListener("click", function (e) {
                                 e.preventDefault();
                                 inputCidade.form.submit();

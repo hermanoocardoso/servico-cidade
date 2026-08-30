@@ -482,19 +482,23 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     color: var(--cor-texto);
     text-align: center;
 }
+/* Ícone de categoria discreto: sem círculo colorido chamativo, só um fundo
+   neutro bem sutil -- o destaque de verdade fica pro estado "selecionado". */
 .category-icon {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
-    background: #EEF1FF;
+    background: #F4F5F8;
+    border: 1px solid #EBECF2;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    transition: background 0.15s ease, transform 0.15s ease;
+    font-size: 1.4rem;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .mega-item:hover .category-icon {
     transform: translateY(-3px);
+    border-color: rgba(var(--cor-primaria-rgb), 0.35);
 }
 .category-label {
     font-size: 0.72rem;
@@ -646,6 +650,49 @@ details summary.ver-todas-categorias::-webkit-details-marker {
 @media (max-width: 767px) {
     .hero-bubble { display: none; }
     .landing-hero { padding: 2.5rem 1rem; border-radius: 18px; }
+}
+
+/* --- Hero claro (topo da home): fundo branco, texto à esquerda, foto real
+   de um profissional em destaque quando existir uma cadastrada --- */
+.hero-claro {
+    background: #fff;
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    box-shadow: var(--sombra);
+}
+@media (max-width: 767px) {
+    .hero-claro { padding: 2rem 1.25rem; border-radius: 18px; }
+}
+.busca-combo-clara {
+    border: 1px solid #E3E6EF;
+    box-shadow: 0 4px 16px rgba(31, 35, 51, 0.06);
+}
+.hero-visual-wrap {
+    position: relative;
+    max-width: 340px;
+    margin: 0 auto;
+}
+.hero-foto-profissional {
+    width: 100%;
+    height: 380px;
+    object-fit: cover;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-hover);
+}
+.hero-review-card {
+    position: absolute;
+    bottom: -1rem;
+    right: -1rem;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: var(--sombra-hover);
+    padding: 0.85rem 1.1rem;
+    text-align: left;
+    min-width: 170px;
+}
+@media (max-width: 991px) {
+    .hero-foto-profissional { height: 300px; }
+    .hero-review-card { right: 0.5rem; bottom: -0.75rem; }
 }
 
 /* Ícone redondo nos cards "Sou cliente" / "Sou profissional" da landing */
