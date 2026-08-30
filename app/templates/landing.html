@@ -249,7 +249,7 @@
                 {% else %}
                     <p class="small text-muted mb-2">Novo no catálogo</p>
                 {% endif %}
-                <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm w-100 mt-auto">Ver perfil</a>
+                <a href="/comecar?tipo=cliente&next={{ ('/profissional/' ~ p.id) | urlencode }}" class="btn btn-outline-primary btn-sm w-100 mt-auto">Ver perfil</a>
             </div>
         </div>
     </div>

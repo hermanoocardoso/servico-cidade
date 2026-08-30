@@ -11,14 +11,14 @@
 
         <div class="row g-4 justify-content-center">
             <div class="col-md-5">
-                <a href="/login" class="escolha-card">
+                <a href="/login{% if next %}?next={{ next | urlencode }}{% endif %}" class="escolha-card">
                     <span class="escolha-card-titulo">Já tenho conta</span>
                     <span class="escolha-card-desc">Entrar com meu e-mail e senha</span>
                     <span class="btn btn-primary mt-3">Entrar</span>
                 </a>
             </div>
             <div class="col-md-5">
-                <a href="/cadastro?tipo={{ tipo }}" class="escolha-card">
+                <a href="/cadastro?tipo={{ tipo }}{% if next %}&next={{ next | urlencode }}{% endif %}" class="escolha-card">
                     <span class="escolha-card-titulo">Ainda não tenho conta</span>
                     <span class="escolha-card-desc">
                         {% if tipo == "profissional" %}Criar cadastro gratuito como profissional{% else %}Criar cadastro gratuito como cliente{% endif %}
@@ -30,9 +30,9 @@
 
         <p class="text-muted small mt-5 mb-0">
             {% if tipo == "profissional" %}
-                Na verdade quero contratar alguém. <a href="/comecar?tipo=cliente">Trocar para cliente</a>
+                Na verdade quero contratar alguém. <a href="/comecar?tipo=cliente{% if next %}&next={{ next | urlencode }}{% endif %}">Trocar para cliente</a>
             {% else %}
-                Na verdade quero oferecer meus serviços. <a href="/comecar?tipo=profissional">Trocar para profissional</a>
+                Na verdade quero oferecer meus serviços. <a href="/comecar?tipo=profissional{% if next %}&next={{ next | urlencode }}{% endif %}">Trocar para profissional</a>
             {% endif %}
         </p>
     </div>

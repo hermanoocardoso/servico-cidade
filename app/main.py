@@ -426,21 +426,34 @@ def catalogo(
 # Cadastro / Login / Logout
 # ---------------------------------------------------------------------------
 
+def _next_seguro(next: str | None) -> str:
+    """Só aceita caminhos internos (começando com uma única "/") como destino
+    pós-login — evita que alguém use ?next= pra redirecionar a vítima de um
+    link malicioso pra fora do site (open redirect)."""
+    if next and next.startswith("/") and not next.startswith("//") and not next.startswith("/\\"):
+        return next
+    return "/"
+
+
 @app.get("/comecar")
-def form_comecar(request: Request, tipo: str = "cliente"):
+def form_comecar(request: Request, tipo: str = "cliente", next: str | None = None):
     return templates.TemplateResponse(
         "comecar.html",
-        {"request": request, "tipo": tipo if tipo in ("cliente", "profissional") else "cliente"},
+        {
+            "request": request, "tipo": tipo if tipo in ("cliente", "profissional") else "cliente",
+            "next": _next_seguro(next) if next else "",
+        },
     )
 
 
 @app.get("/cadastro")
-def form_cadastro(request: Request, tipo: str = "cliente"):
+def form_cadastro(request: Request, tipo: str = "cliente", next: str | None = None):
     return templates.TemplateResponse(
         "cadastro.html",
         {
             "request": request, "erro": None, "google_habilitado": google_oauth_habilitado,
             "tipo_selecionado": tipo if tipo in ("cliente", "profissional") else "cliente",
+            "next": _next_seguro(next) if next else "",
         },
     )
 
@@ -455,6 +468,7 @@ def cadastrar(
     tipo: str = Form(...),
     cidade: str = Form(""),
     bairro: str = Form(""),
+    next: str = Form(""),
     db: Session = Depends(get_db),
 ):
     nome = nome.strip()
@@ -467,6 +481,7 @@ def cadastrar(
             {
                 "request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado,
                 "tipo_selecionado": tipo if tipo in ("cliente", "profissional") else "cliente",
+                "next": next,
             },
         )
 
@@ -500,14 +515,17 @@ def cadastrar(
 
     if tipo == "profissional":
         return RedirectResponse("/profissional/perfil/editar", status_code=303)
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(_next_seguro(next), status_code=303)
 
 
 @app.get("/login")
-def form_login(request: Request):
+def form_login(request: Request, next: str | None = None):
     return templates.TemplateResponse(
         "login.html",
-        {"request": request, "erro": None, "google_habilitado": google_oauth_habilitado},
+        {
+            "request": request, "erro": None, "google_habilitado": google_oauth_habilitado,
+            "next": _next_seguro(next) if next else "",
+        },
     )
 
 
@@ -516,6 +534,7 @@ def login(
     request: Request,
     email: str = Form(...),
     senha: str = Form(...),
+    next: str = Form(""),
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
@@ -524,7 +543,7 @@ def login(
     def erro(mensagem):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado},
+            {"request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado, "next": next},
         )
 
     if usuario and not usuario.senha_hash:
@@ -536,7 +555,7 @@ def login(
         return erro("Essa conta foi bloqueada. Entre em contato com o suporte.")
 
     request.session["user_id"] = usuario.id
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(_next_seguro(next), status_code=303)
 
 
 # ---------------------------------------------------------------------------
@@ -544,9 +563,12 @@ def login(
 # ---------------------------------------------------------------------------
 
 @app.get("/auth/google/login")
-async def google_login(request: Request):
+async def google_login(request: Request, next: str | None = None):
     if not google_oauth_habilitado:
         return RedirectResponse("/login", status_code=303)
+    # Guarda o destino na sessão -- a ida e volta pro Google não preserva
+    # query string nenhuma além da que o próprio OAuth usa.
+    request.session["oauth_next"] = _next_seguro(next) if next else ""
     redirect_uri = request.url_for("google_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -562,6 +584,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     nome = userinfo.get("name") or email.split("@")[0]
     google_id = userinfo["sub"]
 
+    proximo = request.session.pop("oauth_next", "") or "/"
     usuario = db.query(models.User).filter(models.User.email == email).first()
 
     if usuario:
@@ -583,10 +606,13 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         if atualizado:
             db.commit()
         request.session["user_id"] = usuario.id
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(proximo, status_code=303)
 
     # Conta nova via Google: ainda falta telefone (contato) e tipo de conta.
+    # Guarda o destino de novo, porque completar-cadastro-google é mais um
+    # redirect antes do login de verdade acontecer.
     request.session["google_pendente"] = {"email": email, "nome": nome, "google_id": google_id}
+    request.session["oauth_next"] = proximo
     return RedirectResponse("/completar-cadastro-google", status_code=303)
 
 
@@ -646,11 +672,12 @@ def completar_cadastro_google(
         db.commit()
 
     del request.session["google_pendente"]
+    proximo = request.session.pop("oauth_next", "") or "/"
     request.session["user_id"] = novo_usuario.id
 
     if tipo == "profissional":
         return RedirectResponse("/profissional/perfil/editar", status_code=303)
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(proximo, status_code=303)
 
 
 @app.get("/logout")
