@@ -27,7 +27,12 @@
 }
 </script>
 
-<a href="/" class="btn btn-link ps-0 mb-2">&larr; Voltar ao catálogo</a>
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+    <a href="/" class="btn btn-link ps-0">&larr; Voltar ao catálogo</a>
+    {% if eh_admin_usuario %}
+        <a href="/admin/profissional/{{ perfil.id }}/editar" class="btn btn-outline-primary btn-sm">✏️ Editar como admin</a>
+    {% endif %}
+</div>
 
 <div class="perfil-publico-card mb-4">
     <div class="row g-4">

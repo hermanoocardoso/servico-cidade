@@ -1084,6 +1084,7 @@ def ver_profissional(
             "avaliacoes": avaliacoes,
             "minha_avaliacao": minha_avaliacao,
             "pode_avaliar": pode_avaliar,
+            "eh_admin_usuario": eh_admin(usuario),
         },
     )
 
