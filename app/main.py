@@ -653,6 +653,15 @@ def pagina_seo_categoria_cidade(
 SITE_URL = "https://socorreaqui.tec.br"
 
 
+@app.get("/googlefcb4228506c22a8f.html")
+def google_search_console_verificacao():
+    # Arquivo de verificação de propriedade do Google Search Console --
+    # o conteúdo precisa ser exatamente esse (o nome do arquivo repetido
+    # como texto), e o arquivo nunca pode ser removido, senão a
+    # verificação é perdida.
+    return PlainTextResponse("google-site-verification: googlefcb4228506c22a8f.html")
+
+
 @app.get("/robots.txt")
 def robots_txt():
     conteudo = (
