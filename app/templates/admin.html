@@ -276,13 +276,25 @@
             <tbody>
             {% for i in indicacoes_autenticadas %}
                 <tr>
-                    <td>{{ i.nome_profissional }} <span class="badge bg-success">autenticada</span></td>
+                    <td>
+                        {{ i.nome_profissional }}
+                        {% if i.telefone_profissional in telefones_ja_profissionais %}
+                            <span class="badge bg-success">no catálogo</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">falta publicar</span>
+                        {% endif %}
+                    </td>
                     <td>{{ i.telefone_profissional }}</td>
                     <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
                     <td>{{ i.cidade or "-" }}</td>
                     <td>{{ i.indicado_por.nome }}<br><span class="text-muted small">{{ i.indicado_por.telefone }}</span></td>
                     <td class="small text-muted">{{ i.observacao or "-" }}</td>
                     <td class="text-nowrap">
+                        {% if i.telefone_profissional not in telefones_ja_profissionais %}
+                        <form method="post" action="/admin/indicacao/{{ i.id }}/autenticar" class="d-inline">
+                            <button class="btn btn-success btn-sm">Publicar no catálogo</button>
+                        </form>
+                        {% endif %}
                         <form method="post" action="/admin/indicacao/{{ i.id }}/descartar" class="d-inline"
                               onsubmit="return confirm('Descartar esta indicação?');">
                             <button class="btn btn-outline-secondary btn-sm">Descartar</button>

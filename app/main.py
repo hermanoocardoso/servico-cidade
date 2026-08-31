@@ -1311,6 +1311,13 @@ def admin_painel(
     indicacoes_autenticadas = db.query(models.Indicacao).filter(
         models.Indicacao.status == "autenticada"
     ).order_by(models.Indicacao.criado_em.desc()).all()
+    # Indicações autenticadas antes dessa função criar o profissional de
+    # verdade (versão anterior só marcava o status) ficaram "presas" sem
+    # perfil -- usamos isso pra saber quais ainda precisam do botão de
+    # publicar de novo.
+    telefones_ja_profissionais = {
+        linha[0] for linha in db.query(models.User.telefone).filter(models.User.tipo == "profissional").all()
+    }
 
     clientes = db.query(models.User).filter(
         models.User.tipo == "cliente"
@@ -1357,6 +1364,7 @@ def admin_painel(
             "indicacoes_pendentes": indicacoes_pendentes,
             "indicacoes_contatadas": indicacoes_contatadas,
             "indicacoes_autenticadas": indicacoes_autenticadas,
+            "telefones_ja_profissionais": telefones_ja_profissionais,
             "clientes": clientes,
             "numeros": numeros,
         },
