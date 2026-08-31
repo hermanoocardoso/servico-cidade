@@ -168,6 +168,7 @@ with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
     CSS_VERSION = hashlib.md5(_f.read()).hexdigest()[:8]
 templates.env.globals["css_version"] = CSS_VERSION
 templates.env.globals["ano_atual"] = datetime.now().year
+templates.env.globals["rodando_em_producao"] = RODANDO_EM_PRODUCAO
 
 
 def _tojson(valor):
