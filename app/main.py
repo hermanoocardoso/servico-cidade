@@ -11,6 +11,7 @@ Veja o LEIA-ME.md na raiz do projeto para o passo a passo completo
 de instalação.
 """
 import hashlib
+import io
 import json
 import os
 import re
@@ -184,7 +185,38 @@ EXTENSOES_FOTO_PERMITIDAS = {
     "image/png": ".png",
     "image/webp": ".webp",
 }
+_FORMATO_PILLOW_POR_CONTENT_TYPE = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/webp": "WEBP",
+}
 TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
+
+
+def _validar_e_normalizar_foto(conteudo: bytes, content_type: str) -> bytes | None:
+    """Confere que os bytes enviados são mesmo uma imagem de verdade (o
+    content-type do formulário é só o que o navegador declarou, e isso o
+    usuário controla -- não dá pra confiar nele sozinho) e reexporta a
+    imagem do zero, o que também descarta metadados EXIF (ex: coordenadas
+    de GPS de onde a foto foi tirada, que o profissional provavelmente não
+    quer expor). Retorna None se o arquivo não for uma imagem válida.
+    """
+    from PIL import Image, ImageOps
+
+    try:
+        imagem = Image.open(io.BytesIO(conteudo))
+        imagem.verify()
+        # verify() invalida o objeto pra qualquer uso seguinte -- reabre.
+        imagem = Image.open(io.BytesIO(conteudo))
+        imagem = ImageOps.exif_transpose(imagem)  # aplica a rotação do EXIF antes de descartá-lo
+        formato = _FORMATO_PILLOW_POR_CONTENT_TYPE[content_type]
+        if formato == "JPEG" and imagem.mode in ("RGBA", "P", "LA"):
+            imagem = imagem.convert("RGB")
+        buffer = io.BytesIO()
+        imagem.save(buffer, format=formato)
+        return buffer.getvalue()
+    except Exception:
+        return None
 
 # Especialidades médicas mais comuns pro <select> — se não estiver na lista,
 # o profissional pode digitar a própria em "Outra especialidade".
@@ -578,10 +610,15 @@ def cadastrar(
 
     if not EMAIL_REGEX.match(email):
         return erro("Digite um e-mail válido.")
-    if db.query(models.User).filter(models.User.email == email).first():
-        return erro("Já existe um cadastro com esse e-mail.")
-    if db.query(models.User).filter(models.User.telefone == telefone).first():
-        return erro("Já existe um cadastro com esse telefone.")
+    # Mensagem genérica de propósito -- não diz se foi o e-mail ou o telefone
+    # que já existe, pra não dar pra alguém checar "esse e-mail já tem
+    # conta?" só tentando cadastrar (enumeração de contas).
+    ja_existe = (
+        db.query(models.User).filter(models.User.email == email).first()
+        or db.query(models.User).filter(models.User.telefone == telefone).first()
+    )
+    if ja_existe:
+        return erro("Já existe uma conta com esse e-mail ou telefone. Se for sua, faça login.")
 
     novo_usuario = models.User(
         nome=nome,
@@ -643,10 +680,15 @@ def login(
 
     usuario = db.query(models.User).filter(models.User.email == email).first()
 
-    if usuario and not usuario.senha_hash:
-        _registrar_tentativa_falha(chave_limite)
-        return erro('Essa conta usa login com Google. Clique em "Entrar com Google" abaixo.')
-    if not usuario or not auth.verificar_senha(senha, usuario.senha_hash):
+    # Mensagem sempre igual (não diz se o e-mail existe, se a senha é
+    # errada, ou se a conta é só de Google) -- evita dar pra alguém
+    # descobrir quais e-mails têm conta só de tentar logar com eles. Quem
+    # cadastrou com Google já vê o botão "Entrar com Google" na mesma tela.
+    if (
+        not usuario
+        or not usuario.senha_hash
+        or not auth.verificar_senha(senha, usuario.senha_hash)
+    ):
         _registrar_tentativa_falha(chave_limite)
         return erro("E-mail ou senha incorretos.")
 
@@ -1104,9 +1146,12 @@ def _aplicar_dados_perfil(
         conteudo = foto.file.read()
         if len(conteudo) > TAMANHO_MAXIMO_FOTO:
             return "A foto é muito grande (máximo 5 MB)."
+        conteudo_normalizado = _validar_e_normalizar_foto(conteudo, foto.content_type)
+        if conteudo_normalizado is None:
+            return "O arquivo enviado não é uma imagem válida. Tente outra foto."
         extensao = EXTENSOES_FOTO_PERMITIDAS[foto.content_type]
         nome_arquivo = f"profissional_{perfil.usuario_id}{extensao}"
-        perfil.foto_url = storage.salvar_foto(conteudo, nome_arquivo, foto.content_type)
+        perfil.foto_url = storage.salvar_foto(conteudo_normalizado, nome_arquivo, foto.content_type)
 
     perfil.cidade = cidade
     perfil.bairro = bairro
