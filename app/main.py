@@ -1294,12 +1294,19 @@ def _aplicar_dados_perfil(
     valor_mao_de_obra, whatsapp, categorias_ids, outra_categoria,
     crm, especialidade_medica, especialidade_medica_outra,
     atende_convenio, convenios_aceitos, foto,
+    exigir_completo=True,
 ):
     """
     Aplica os campos do formulário de editar perfil (usado tanto pelo próprio
     profissional quanto pelo admin editando em nome dele). Retorna uma
     mensagem de erro (str) se algum campo obrigatório estiver faltando ou a
     foto for inválida, ou None se salvou certo.
+
+    exigir_completo=False (usado só pelo admin) pula as exigências de
+    bairro/WhatsApp/categoria/foto -- necessário pra corrigir perfis criados
+    via indicação, que nascem incompletos de propósito (a indicação não
+    coleta foto nem bairro) e ficariam impossíveis de editar aos poucos se
+    cada correção precisasse vir com o cadastro inteiro completo.
     """
     cidade = cidade.strip()
     bairro = bairro.strip()
@@ -1307,18 +1314,19 @@ def _aplicar_dados_perfil(
 
     if not cidade:
         return "Cidade é obrigatória."
-    if not bairro:
-        return "Bairro é obrigatório."
-    if not whatsapp:
-        return "WhatsApp para contato é obrigatório."
-    # Sem isso, um profissional conseguia terminar o cadastro sem escolher
-    # nenhuma área de atuação -- e o admin não tinha como saber o que essa
-    # pessoa faz na hora de decidir se aprova ou não.
-    if not categorias_ids and not outra_categoria.strip():
-        return "Selecione pelo menos uma categoria (ou digite em \"Outra categoria\")."
+    if exigir_completo:
+        if not bairro:
+            return "Bairro é obrigatório."
+        if not whatsapp:
+            return "WhatsApp para contato é obrigatório."
+        # Sem isso, um profissional conseguia terminar o cadastro sem escolher
+        # nenhuma área de atuação -- e o admin não tinha como saber o que essa
+        # pessoa faz na hora de decidir se aprova ou não.
+        if not categorias_ids and not outra_categoria.strip():
+            return "Selecione pelo menos uma categoria (ou digite em \"Outra categoria\")."
 
     tem_foto_nova = bool(foto and foto.filename)
-    if not tem_foto_nova and not perfil.foto_url:
+    if exigir_completo and not tem_foto_nova and not perfil.foto_url:
         return "Foto é obrigatória."
 
     if tem_foto_nova:
@@ -1593,7 +1601,7 @@ def admin_salvar_perfil(
         crm=crm, especialidade_medica=especialidade_medica,
         especialidade_medica_outra=especialidade_medica_outra,
         atende_convenio=atende_convenio, convenios_aceitos=convenios_aceitos,
-        foto=foto,
+        foto=foto, exigir_completo=False,
     )
     if erro_msg:
         categorias = db.query(models.Category).order_by(models.Category.nome).all()
