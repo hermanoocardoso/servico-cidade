@@ -39,6 +39,30 @@ EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # assim um novo deploy já atualiza o catálogo de categorias sozinho, sem
 # precisar rodar "python -m app.seed" manualmente em produção.
 Base.metadata.create_all(bind=engine)
+
+
+def _garantir_colunas_novas():
+    """create_all() só cria tabelas que ainda não existem -- não adiciona
+    coluna nova numa tabela que já existe em produção. Como não usamos uma
+    ferramenta de migração (Alembic), essa função confere colunas que os
+    modelos esperam e adiciona na mão as que estiverem faltando, sem apagar
+    nada. Precisa ficar em dia manualmente sempre que um Column novo for
+    adicionado a um model existente."""
+    from sqlalchemy import inspect, text
+
+    inspetor = inspect(engine)
+    if "professional_profiles" not in inspetor.get_table_names():
+        return  # tabela acabou de ser criada pelo create_all, já vem completa
+    colunas = {c["name"] for c in inspetor.get_columns("professional_profiles")}
+    if "criado_via_indicacao" not in colunas:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE professional_profiles "
+                "ADD COLUMN criado_via_indicacao BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
+
+
+_garantir_colunas_novas()
 rodar_seed()
 
 app = FastAPI(title="SocorreAqui")
@@ -1534,9 +1558,47 @@ def admin_indicacao_autenticar(
     if not eh_admin(usuario):
         return RedirectResponse("/", status_code=303)
     indicacao = db.query(models.Indicacao).filter(models.Indicacao.id == indicacao_id).first()
-    if indicacao:
-        indicacao.status = "autenticada"
+    if not indicacao:
+        return RedirectResponse("/admin", status_code=303)
+
+    # "Autenticar" publica o profissional direto no catálogo, sem ele
+    # precisar se cadastrar sozinho -- útil pra quando o admin já confirmou
+    # por telefone que a pessoa existe e topa aparecer. Se já existir conta
+    # com esse telefone (a pessoa se cadastrou por conta própria nesse
+    # meio-tempo, por exemplo), só marca a indicação como autenticada e
+    # não cria duplicado.
+    ja_tem_conta = db.query(models.User).filter(
+        models.User.telefone == indicacao.telefone_profissional
+    ).first()
+    if not ja_tem_conta:
+        telefone_digitos = re.sub(r"\D", "", indicacao.telefone_profissional) or str(indicacao.id)
+        novo_usuario = models.User(
+            nome=indicacao.nome_profissional,
+            email=f"indicacao-{telefone_digitos}@sem-email.socorreaqui.com.br",
+            telefone=indicacao.telefone_profissional,
+            senha_hash=None,
+            tipo="profissional",
+            cidade=indicacao.cidade,
+            email_verificado=False,
+            ativo=True,
+        )
+        db.add(novo_usuario)
         db.commit()
+        db.refresh(novo_usuario)
+
+        perfil = models.ProfessionalProfile(
+            usuario_id=novo_usuario.id,
+            cidade=indicacao.cidade or "",
+            aprovado=True,
+            ativo=True,
+            criado_via_indicacao=True,
+        )
+        if indicacao.categoria:
+            perfil.categorias.append(indicacao.categoria)
+        db.add(perfil)
+
+    indicacao.status = "autenticada"
+    db.commit()
     return RedirectResponse("/admin", status_code=303)
 
 

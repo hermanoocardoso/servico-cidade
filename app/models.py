@@ -98,6 +98,11 @@ class ProfessionalProfile(Base):
     aprovado = Column(Boolean, default=False)  # aprovação manual pelo admin antes de aparecer no catálogo
     ativo = Column(Boolean, default=True)      # profissional pode "pausar" o perfil sem apagar
 
+    # Marca perfis criados pelo admin ao autenticar uma indicação (a pessoa
+    # nunca se cadastrou sozinha) -- mostra um selo "Indicado" pra deixar
+    # claro que essa recomendação não passou pelo cadastro normal.
+    criado_via_indicacao = Column(Boolean, default=False, nullable=False)
+
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("User", back_populates="perfil_profissional")

@@ -35,7 +35,10 @@
 
         <div class="col-md-8">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
-                <h1 class="h3 mb-0">{{ perfil.usuario.nome }}</h1>
+                <h1 class="h3 mb-0">
+                    {{ perfil.usuario.nome }}
+                    {% if perfil.criado_via_indicacao %}<span class="badge bg-warning text-dark">Indicado</span>{% endif %}
+                </h1>
                 {% if perfil.total_avaliacoes > 0 %}
                     <span class="badge-avaliacao">⭐ {{ perfil.nota_media }} <span class="text-muted fw-normal">({{ perfil.total_avaliacoes }})</span></span>
                 {% else %}

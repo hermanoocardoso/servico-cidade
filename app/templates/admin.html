@@ -105,7 +105,10 @@
         <tbody>
         {% for p in aprovados %}
             <tr>
-                <td><a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a></td>
+                <td>
+                    <a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a>
+                    {% if p.criado_via_indicacao %}<span class="badge bg-warning text-dark">Indicado</span>{% endif %}
+                </td>
                 <td>{{ p.cidade }}</td>
                 <td>⭐ {{ p.nota_media }} ({{ p.total_avaliacoes }})</td>
                 <td>
