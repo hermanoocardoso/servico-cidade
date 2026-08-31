@@ -470,28 +470,32 @@ def _resultados_catalogo(
         profissionais.sort(key=lambda p: (p.nota_media, p.total_avaliacoes), reverse=True)
 
     # Sem nenhum filtro (busca "em branco"): mostra todo mundo, mas
-    # agrupado por bairro, com o bairro do usuário logado aparecendo
+    # agrupado por CIDADE (não bairro) -- o catálogo já tem gente de
+    # municípios diferentes, e é o mesmo nível geográfico usado em todo
+    # o resto do site (check-in, atalhos de cidade, páginas de SEO). Bairro
+    # continua sendo um campo próprio no cadastro, só não é mais o critério
+    # de agrupamento da home, com a cidade do usuário logado aparecendo
     # primeiro — assim é mais fácil achar quem atende perto de você.
-    profissionais_por_bairro = None
-    bairro_usuario = ""
+    profissionais_por_cidade = None
+    cidade_usuario = ""
     if not categoria_id and not grupo and not cidade and not busca:
         grupos = {}
         for p in profissionais:
-            chave = (p.bairro or "").strip() or "Bairro não informado"
+            chave = (p.cidade or "").strip() or "Cidade não informada"
             grupos.setdefault(chave, []).append(p)
 
         if usuario:
-            if usuario.bairro:
-                bairro_usuario = usuario.bairro.strip()
-            elif usuario.tipo == "profissional" and usuario.perfil_profissional and usuario.perfil_profissional.bairro:
-                # Profissional já tem bairro cadastrado no perfil de atendimento —
+            if usuario.cidade:
+                cidade_usuario = usuario.cidade.strip()
+            elif usuario.tipo == "profissional" and usuario.perfil_profissional and usuario.perfil_profissional.cidade:
+                # Profissional já tem cidade cadastrada no perfil de atendimento —
                 # não faz sentido pedir de novo em "Minha localização".
-                bairro_usuario = usuario.perfil_profissional.bairro.strip()
+                cidade_usuario = usuario.perfil_profissional.cidade.strip()
 
-        def ordem_bairro(nome):
-            return (nome != bairro_usuario, nome == "Bairro não informado", nome.lower())
+        def ordem_cidade(nome):
+            return (nome != cidade_usuario, nome == "Cidade não informada", nome.lower())
 
-        profissionais_por_bairro = [(nome, grupos[nome]) for nome in sorted(grupos, key=ordem_bairro)]
+        profissionais_por_cidade = [(nome, grupos[nome]) for nome in sorted(grupos, key=ordem_cidade)]
 
     categorias = db.query(models.Category).order_by(models.Category.nome).all()
 
@@ -510,8 +514,8 @@ def _resultados_catalogo(
             "request": request,
             "usuario": usuario,
             "profissionais": profissionais,
-            "profissionais_por_bairro": profissionais_por_bairro,
-            "bairro_usuario": bairro_usuario,
+            "profissionais_por_cidade": profissionais_por_cidade,
+            "cidade_usuario": cidade_usuario,
             "categorias": categorias,
             "categorias_por_grupo": categorias_por_grupo,
             "filtro_categoria": categoria_id,

@@ -23,7 +23,7 @@
                 {% endfor %}
             {% endif %}
         </div>
-        <p class="text-muted small mb-1">📍 {{ p.bairro or '' }}{% if p.bairro and p.cidade %}, {% endif %}{{ p.cidade or '' }}</p>
+        <p class="text-muted small mb-1">📍 {% if p.bairro and p.bairro.strip().lower() != (p.cidade or '').strip().lower() %}{{ p.bairro }}, {% endif %}{{ p.cidade or '' }}</p>
         {% if p.total_avaliacoes > 0 %}
             <p class="small mb-0">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }} avaliações)</span></p>
         {% else %}
@@ -186,9 +186,9 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
 </div>
 <div class="mb-4"></div>
 
-{% if usuario and not bairro_usuario and profissionais_por_bairro %}
+{% if usuario and not cidade_usuario and profissionais_por_cidade %}
 <div class="alert alert-light border small">
-    Dica: <a href="/minha-localizacao">cadastre seu bairro</a> pra gente mostrar primeiro quem atende perto de você.
+    Dica: <a href="/minha-localizacao">cadastre sua cidade</a> pra gente mostrar primeiro quem atende perto de você.
 </div>
 {% endif %}
 
@@ -207,14 +207,14 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
     </div>
 </div>
 
-{% if profissionais_por_bairro %}
-    {% for bairro_nome, lista in profissionais_por_bairro %}
-    <div class="secao-bairro {% if bairro_usuario and bairro_nome == bairro_usuario %}secao-bairro-destaque{% endif %} mt-3 mb-4">
+{% if profissionais_por_cidade %}
+    {% for cidade_nome, lista in profissionais_por_cidade %}
+    <div class="secao-bairro {% if cidade_usuario and cidade_nome == cidade_usuario %}secao-bairro-destaque{% endif %} mt-3 mb-4">
         <h6 class="text-uppercase text-muted mb-3 titulo-secao">
-            {% if bairro_usuario and bairro_nome == bairro_usuario %}
-                📍 {{ bairro_nome }} <span class="badge bg-primary">seu bairro</span>
+            {% if cidade_usuario and cidade_nome == cidade_usuario %}
+                📍 {{ cidade_nome }} <span class="badge bg-primary">sua cidade</span>
             {% else %}
-                {{ bairro_nome }}
+                {{ cidade_nome }}
             {% endif %}
         </h6>
         <div class="resultados-lista">

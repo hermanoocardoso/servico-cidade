@@ -100,7 +100,7 @@
                     <span class="badge bg-info text-dark">🏠 Atende em domicílio</span>
                 {% endif %}
             </p>
-            <p class="text-muted mb-3">📍 {{ perfil.bairro or '' }}{% if perfil.bairro and perfil.cidade %}, {% endif %}{{ perfil.cidade or '' }}</p>
+            <p class="text-muted mb-3">📍 {% if perfil.bairro and perfil.bairro.strip().lower() != (perfil.cidade or '').strip().lower() %}{{ perfil.bairro }}, {% endif %}{{ perfil.cidade or '' }}</p>
 
             {% if perfil.valor_mao_de_obra %}
                 <p class="mb-2"><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
