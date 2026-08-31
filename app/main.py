@@ -1135,6 +1135,11 @@ def _aplicar_dados_perfil(
         return "Bairro é obrigatório."
     if not whatsapp:
         return "WhatsApp para contato é obrigatório."
+    # Sem isso, um profissional conseguia terminar o cadastro sem escolher
+    # nenhuma área de atuação -- e o admin não tinha como saber o que essa
+    # pessoa faz na hora de decidir se aprova ou não.
+    if not categorias_ids and not outra_categoria.strip():
+        return "Selecione pelo menos uma categoria (ou digite em \"Outra categoria\")."
 
     tem_foto_nova = bool(foto and foto.filename)
     if not tem_foto_nova and not perfil.foto_url:
@@ -1279,6 +1284,9 @@ def admin_painel(
     indicacoes_contatadas = db.query(models.Indicacao).filter(
         models.Indicacao.status == "contatada"
     ).order_by(models.Indicacao.criado_em.desc()).all()
+    indicacoes_autenticadas = db.query(models.Indicacao).filter(
+        models.Indicacao.status == "autenticada"
+    ).order_by(models.Indicacao.criado_em.desc()).all()
 
     clientes = db.query(models.User).filter(
         models.User.tipo == "cliente"
@@ -1310,6 +1318,7 @@ def admin_painel(
         "media_geral": round(media_geral, 1) if media_geral else None,
         "total_indicacoes_pendentes": len(indicacoes_pendentes),
         "total_indicacoes_contatadas": len(indicacoes_contatadas),
+        "total_indicacoes_autenticadas": len(indicacoes_autenticadas),
         "novos_cadastros_7d": novos_cadastros_7d,
         "categorias_populares": categorias_populares,
     }
@@ -1323,6 +1332,7 @@ def admin_painel(
             "aprovados": aprovados,
             "indicacoes_pendentes": indicacoes_pendentes,
             "indicacoes_contatadas": indicacoes_contatadas,
+            "indicacoes_autenticadas": indicacoes_autenticadas,
             "clientes": clientes,
             "numeros": numeros,
         },
@@ -1511,6 +1521,21 @@ def admin_indicacao_contatado(
     indicacao = db.query(models.Indicacao).filter(models.Indicacao.id == indicacao_id).first()
     if indicacao:
         indicacao.status = "contatada"
+        db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/indicacao/{indicacao_id}/autenticar")
+def admin_indicacao_autenticar(
+    indicacao_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+    indicacao = db.query(models.Indicacao).filter(models.Indicacao.id == indicacao_id).first()
+    if indicacao:
+        indicacao.status = "autenticada"
         db.commit()
     return RedirectResponse("/admin", status_code=303)
 

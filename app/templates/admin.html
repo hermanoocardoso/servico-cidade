@@ -39,6 +39,10 @@
             <div class="text-muted small">Indicações contatadas</div>
             <div class="fs-3 fw-semibold">{{ numeros.total_indicacoes_contatadas }}</div>
         </div>
+        <div class="col">
+            <div class="text-muted small">Indicações autenticadas</div>
+            <div class="fs-3 fw-semibold">{{ numeros.total_indicacoes_autenticadas }}</div>
+        </div>
     </div>
 
     {% if numeros.categorias_populares %}
@@ -228,6 +232,48 @@
             {% for i in indicacoes_contatadas %}
                 <tr>
                     <td>{{ i.nome_profissional }}</td>
+                    <td>{{ i.telefone_profissional }}</td>
+                    <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
+                    <td>{{ i.cidade or "-" }}</td>
+                    <td>{{ i.indicado_por.nome }}<br><span class="text-muted small">{{ i.indicado_por.telefone }}</span></td>
+                    <td class="small text-muted">{{ i.observacao or "-" }}</td>
+                    <td class="text-nowrap">
+                        <form method="post" action="/admin/indicacao/{{ i.id }}/autenticar" class="d-inline">
+                            <button class="btn btn-success btn-sm">Autenticar</button>
+                        </form>
+                        <form method="post" action="/admin/indicacao/{{ i.id }}/descartar" class="d-inline"
+                              onsubmit="return confirm('Descartar esta indicação?');">
+                            <button class="btn btn-outline-secondary btn-sm">Descartar</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </details>
+    {% endif %}
+
+    {% if indicacoes_autenticadas %}
+    <details class="mt-3">
+        <summary class="ver-todas-categorias">Indicações autenticadas ({{ indicacoes_autenticadas|length }})</summary>
+        <div class="table-responsive mt-2">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Profissional indicado</th>
+                    <th>Telefone</th>
+                    <th>Categoria</th>
+                    <th>Cidade</th>
+                    <th>Indicado por</th>
+                    <th>Observação</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for i in indicacoes_autenticadas %}
+                <tr>
+                    <td>{{ i.nome_profissional }} <span class="badge bg-success">autenticada</span></td>
                     <td>{{ i.telefone_profissional }}</td>
                     <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
                     <td>{{ i.cidade or "-" }}</td>
