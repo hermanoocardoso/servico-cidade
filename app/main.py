@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.database import Base, engine, get_db
-from app import models, auth, storage
+from app import models, auth, storage, email_utils
 from app.oauth import oauth, google_oauth_habilitado
 from app.seed import rodar_seed
 
@@ -45,6 +45,19 @@ app = FastAPI(title="SocorreAqui")
 # variável de ambiente SECRET_KEY com um valor aleatório e secreto.
 SECRET_KEY = os.getenv("SECRET_KEY", "troque-esta-chave-antes-de-colocar-no-ar")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()  # e-mail do seu usuário admin, defina no .env
+
+
+def _avisar_admin_novo_cadastro(usuario: "models.User") -> None:
+    # Se ADMIN_EMAIL não estiver configurado, ou o SendGrid não estiver
+    # configurado, enviar_email() já cuida de não quebrar nada (só imprime
+    # no terminal) -- então não precisa checar sendgrid_habilitado aqui.
+    if ADMIN_EMAIL:
+        email_utils.enviar_email_novo_cadastro(
+            ADMIN_EMAIL, usuario.nome, usuario.email, usuario.telefone, usuario.tipo
+        )
+
 
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
@@ -518,6 +531,7 @@ def cadastrar(
         db.add(perfil)
         db.commit()
 
+    _avisar_admin_novo_cadastro(novo_usuario)
     request.session["user_id"] = novo_usuario.id
 
     if tipo == "profissional":
@@ -678,6 +692,7 @@ def completar_cadastro_google(
         db.add(perfil)
         db.commit()
 
+    _avisar_admin_novo_cadastro(novo_usuario)
     del request.session["google_pendente"]
     proximo = request.session.pop("oauth_next", "") or "/"
     request.session["user_id"] = novo_usuario.id
@@ -1114,9 +1129,6 @@ def salvar_perfil(
 # ---------------------------------------------------------------------------
 # Painel admin (aprovar profissionais)
 # ---------------------------------------------------------------------------
-
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()  # e-mail do seu usuário admin, defina no .env
-
 
 def eh_admin(usuario) -> bool:
     return bool(usuario) and bool(ADMIN_EMAIL) and usuario.email == ADMIN_EMAIL

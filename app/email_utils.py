@@ -70,3 +70,22 @@ def enviar_email_confirmacao(destinatario: str, nome: str, link_confirmacao: str
     <p style="color:#888;font-size:13px;">Se você não pediu esse cadastro, pode ignorar este e-mail.</p>
     """
     enviar_email(destinatario, "Confirme seu cadastro — SocorreAqui", corpo)
+
+
+def enviar_email_novo_cadastro(
+    destinatario_admin: str, nome: str, email: str, telefone: str, tipo: str
+) -> None:
+    """Avisa o admin (ADMIN_EMAIL) sempre que um cliente ou profissional novo
+    se cadastra -- pra ele acompanhar o crescimento sem precisar ficar
+    entrando no /admin toda hora."""
+    tipo_label = "Profissional" if tipo == "profissional" else "Cliente"
+    corpo = f"""
+    <p>Novo cadastro no SocorreAqui:</p>
+    <ul>
+        <li><strong>Tipo:</strong> {tipo_label}</li>
+        <li><strong>Nome:</strong> {nome}</li>
+        <li><strong>E-mail:</strong> {email}</li>
+        <li><strong>Telefone:</strong> {telefone}</li>
+    </ul>
+    """
+    enviar_email(destinatario_admin, f"Novo cadastro: {tipo_label} — {nome}", corpo)
