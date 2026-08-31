@@ -207,5 +207,44 @@
     {% else %}
     <p class="text-muted mb-0">Nenhuma indicação pendente.</p>
     {% endif %}
+
+    {% if indicacoes_contatadas %}
+    <details class="mt-3">
+        <summary class="ver-todas-categorias">Indicações já contatadas ({{ indicacoes_contatadas|length }})</summary>
+        <div class="table-responsive mt-2">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Profissional indicado</th>
+                    <th>Telefone</th>
+                    <th>Categoria</th>
+                    <th>Cidade</th>
+                    <th>Indicado por</th>
+                    <th>Observação</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for i in indicacoes_contatadas %}
+                <tr>
+                    <td>{{ i.nome_profissional }}</td>
+                    <td>{{ i.telefone_profissional }}</td>
+                    <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
+                    <td>{{ i.cidade or "-" }}</td>
+                    <td>{{ i.indicado_por.nome }}<br><span class="text-muted small">{{ i.indicado_por.telefone }}</span></td>
+                    <td class="small text-muted">{{ i.observacao or "-" }}</td>
+                    <td class="text-nowrap">
+                        <form method="post" action="/admin/indicacao/{{ i.id }}/descartar" class="d-inline"
+                              onsubmit="return confirm('Descartar esta indicação?');">
+                            <button class="btn btn-outline-secondary btn-sm">Descartar</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </details>
+    {% endif %}
 </div>
 {% endblock %}

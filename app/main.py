@@ -1140,6 +1140,9 @@ def admin_painel(
     indicacoes_pendentes = db.query(models.Indicacao).filter(
         models.Indicacao.status == "pendente"
     ).order_by(models.Indicacao.criado_em.desc()).all()
+    indicacoes_contatadas = db.query(models.Indicacao).filter(
+        models.Indicacao.status == "contatada"
+    ).order_by(models.Indicacao.criado_em.desc()).all()
 
     clientes = db.query(models.User).filter(
         models.User.tipo == "cliente"
@@ -1149,9 +1152,6 @@ def admin_painel(
     sete_dias_atras = datetime.utcnow() - timedelta(days=7)
     total_avaliacoes = db.query(models.Review).count()
     media_geral = db.query(func.avg(models.Review.estrelas)).scalar()
-    total_indicacoes_contatadas = db.query(models.Indicacao).filter(
-        models.Indicacao.status == "contatada"
-    ).count()
     novos_cadastros_7d = db.query(models.User).filter(
         models.User.criado_em >= sete_dias_atras
     ).count()
@@ -1173,7 +1173,7 @@ def admin_painel(
         "total_avaliacoes": total_avaliacoes,
         "media_geral": round(media_geral, 1) if media_geral else None,
         "total_indicacoes_pendentes": len(indicacoes_pendentes),
-        "total_indicacoes_contatadas": total_indicacoes_contatadas,
+        "total_indicacoes_contatadas": len(indicacoes_contatadas),
         "novos_cadastros_7d": novos_cadastros_7d,
         "categorias_populares": categorias_populares,
     }
@@ -1186,6 +1186,7 @@ def admin_painel(
             "pendentes": pendentes,
             "aprovados": aprovados,
             "indicacoes_pendentes": indicacoes_pendentes,
+            "indicacoes_contatadas": indicacoes_contatadas,
             "clientes": clientes,
             "numeros": numeros,
         },
