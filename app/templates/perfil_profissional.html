@@ -1,7 +1,32 @@
 {% extends "base.html" %}
-{% block titulo %}{{ perfil.usuario.nome }}{% endblock %}
+{% set categoria_principal = perfil.categorias[0].nome if perfil.categorias else "" %}
+{% block titulo %}{{ perfil.usuario.nome }}{% if categoria_principal %} — {{ categoria_principal }}{% endif %}{% if perfil.cidade %} em {{ perfil.cidade }}{% endif %} | SocorreAqui{% endblock %}
+{% block meta_descricao %}{{ perfil.usuario.nome }}{% if categoria_principal %}, {{ categoria_principal.lower() }}{% endif %}{% if perfil.cidade %} em {{ perfil.cidade }}{% endif %}.{% if perfil.total_avaliacoes > 0 %} Avaliação {{ perfil.nota_media }} de 5 ({{ perfil.total_avaliacoes }} avaliações).{% endif %} Contato direto pelo WhatsApp.{% endblock %}
 
 {% block conteudo %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": {{ perfil.usuario.nome | tojson }}
+    {%- if perfil.foto_url %}, "image": {{ perfil.foto_url | tojson }}{% endif %}
+    {%- if perfil.descricao %}, "description": {{ perfil.descricao | tojson }}{% endif %}
+    , "telephone": {{ perfil.whatsapp_numero | tojson }}
+    , "address": {
+        "@type": "PostalAddress",
+        "addressLocality": {{ (perfil.cidade or "") | tojson }},
+        "addressCountry": "BR"
+    }
+    {%- if perfil.total_avaliacoes > 0 %}
+    , "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": {{ perfil.nota_media | tojson }},
+        "reviewCount": {{ perfil.total_avaliacoes | tojson }}
+    }
+    {%- endif %}
+}
+</script>
+
 <a href="/" class="btn btn-link ps-0 mb-2">&larr; Voltar ao catálogo</a>
 
 <div class="perfil-publico-card mb-4">

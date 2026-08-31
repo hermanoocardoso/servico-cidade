@@ -16,10 +16,11 @@ import json
 import os
 import re
 import time
+import unicodedata
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
@@ -382,6 +383,17 @@ templates.env.globals["categoria_descricao"] = lambda nome: CATEGORIA_DESCRICOES
 
 
 # ---------------------------------------------------------------------------
+# SEO: slugs amigáveis pra URL (ex: "Ar-condicionado / Refrigeração" -> "ar-condicionado-refrigeracao")
+# ---------------------------------------------------------------------------
+
+def _slugify(texto: str) -> str:
+    texto = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode("ascii")
+    texto = texto.lower().strip()
+    texto = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")
+    return texto
+
+
+# ---------------------------------------------------------------------------
 # Catálogo (página inicial)
 # ---------------------------------------------------------------------------
 
@@ -406,72 +418,15 @@ def cidades_mais_ativas(db: Session, limite: int = 6) -> list[str]:
     return [linha[0] for linha in linhas]
 
 
-@app.get("/")
-def catalogo(
-    request: Request,
-    categoria: str | None = None,
-    grupo: str | None = None,
-    cidade: str | None = None,
-    busca: str | None = None,
-    explorar: str | None = None,
-    ordenar: str = "avaliacao",
-    db: Session = Depends(get_db),
-    usuario=Depends(auth.usuario_logado),
+def _resultados_catalogo(
+    request, db, usuario, *,
+    categoria=None, grupo=None, cidade=None, busca=None, ordenar="avaliacao",
+    titulo_pagina=None, meta_descricao_pagina=None, h1_pagina=None,
 ):
-    # Buscar e navegar o catálogo não exige conta — só pedimos login na hora
-    # de agir de verdade (chamar no WhatsApp, ligar ou avaliar). Um visitante
-    # sem nenhum filtro ainda cai na home de apresentação; qualquer busca,
-    # filtro ou clique em "ver todas as categorias" (explorar) já mostra
-    # os resultados de verdade.
-    tem_filtro = bool(categoria or grupo or cidade or busca or explorar)
-
-    if not usuario and not tem_filtro:
-        categorias_destaque = (
-            db.query(models.Category)
-            .filter(models.Category.nome.in_(CATEGORIAS_DESTAQUE_LANDING))
-            .all()
-        )
-        categorias_destaque.sort(
-            key=lambda c: CATEGORIAS_DESTAQUE_LANDING.index(c.nome)
-            if c.nome in CATEGORIAS_DESTAQUE_LANDING
-            else len(CATEGORIAS_DESTAQUE_LANDING)
-        )
-
-        # "Profissionais em destaque": só dados reais, nunca inventados. Pega
-        # os aprovados/ativos, prioriza melhor avaliados e desempata pelos
-        # mais recentes — assim quem acabou de ser aprovado também aparece,
-        # não só quem já tem avaliação.
-        candidatos = (
-            db.query(models.ProfessionalProfile)
-            .filter(
-                models.ProfessionalProfile.aprovado == True,  # noqa: E712
-                models.ProfessionalProfile.ativo == True,  # noqa: E712
-            )
-            .all()
-        )
-        candidatos.sort(key=lambda p: (p.nota_media, p.total_avaliacoes, p.criado_em), reverse=True)
-        profissionais_destaque = candidatos[:4]
-
-        # Foto real pro hero: o melhor avaliado que tenha foto cadastrada de
-        # verdade (procura em todo mundo aprovado, não só no top 4) — se
-        # ninguém tiver foto ainda, o hero simplesmente não mostra essa
-        # coluna, em vez de usar uma imagem de banco de imagens.
-        profissional_hero = next((p for p in candidatos if p.foto_url), None)
-
-        nomes_categorias = [c.nome for c in db.query(models.Category).order_by(models.Category.nome).all()]
-
-        return templates.TemplateResponse(
-            "landing.html",
-            {
-                "request": request,
-                "categorias_destaque": categorias_destaque,
-                "cidades_destaque": cidades_mais_ativas(db),
-                "profissionais_destaque": profissionais_destaque,
-                "profissional_hero": profissional_hero,
-                "nomes_categorias": nomes_categorias,
-            },
-        )
-
+    """Monta a resposta da tela de resultados (index.html) -- extraído do
+    catalogo() pra ser reaproveitado pelas páginas de SEO por
+    categoria+cidade (/servicos/...), que precisam da mesma listagem só
+    que com título e descrição únicos pra cada combinação."""
     # O <select> de categoria manda "" quando é "Todas as categorias" —
     # não dá pra tipar o parâmetro como int direto, senão o FastAPI
     # rejeita a string vazia antes de chegar aqui.
@@ -565,8 +520,191 @@ def catalogo(
             "ordenar": ordenar,
             "cidades_destaque": cidades_mais_ativas(db),
             "eh_admin_usuario": eh_admin(usuario),
+            "titulo_pagina": titulo_pagina,
+            "meta_descricao_pagina": meta_descricao_pagina,
+            "h1_pagina": h1_pagina,
         },
     )
+
+
+@app.get("/")
+def catalogo(
+    request: Request,
+    categoria: str | None = None,
+    grupo: str | None = None,
+    cidade: str | None = None,
+    busca: str | None = None,
+    explorar: str | None = None,
+    ordenar: str = "avaliacao",
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    # Buscar e navegar o catálogo não exige conta — só pedimos login na hora
+    # de agir de verdade (chamar no WhatsApp, ligar ou avaliar). Um visitante
+    # sem nenhum filtro ainda cai na home de apresentação; qualquer busca,
+    # filtro ou clique em "ver todas as categorias" (explorar) já mostra
+    # os resultados de verdade.
+    tem_filtro = bool(categoria or grupo or cidade or busca or explorar)
+
+    if not usuario and not tem_filtro:
+        categorias_destaque = (
+            db.query(models.Category)
+            .filter(models.Category.nome.in_(CATEGORIAS_DESTAQUE_LANDING))
+            .all()
+        )
+        categorias_destaque.sort(
+            key=lambda c: CATEGORIAS_DESTAQUE_LANDING.index(c.nome)
+            if c.nome in CATEGORIAS_DESTAQUE_LANDING
+            else len(CATEGORIAS_DESTAQUE_LANDING)
+        )
+
+        # "Profissionais em destaque": só dados reais, nunca inventados. Pega
+        # os aprovados/ativos, prioriza melhor avaliados e desempata pelos
+        # mais recentes — assim quem acabou de ser aprovado também aparece,
+        # não só quem já tem avaliação.
+        candidatos = (
+            db.query(models.ProfessionalProfile)
+            .filter(
+                models.ProfessionalProfile.aprovado == True,  # noqa: E712
+                models.ProfessionalProfile.ativo == True,  # noqa: E712
+            )
+            .all()
+        )
+        candidatos.sort(key=lambda p: (p.nota_media, p.total_avaliacoes, p.criado_em), reverse=True)
+        profissionais_destaque = candidatos[:4]
+
+        # Foto real pro hero: o melhor avaliado que tenha foto cadastrada de
+        # verdade (procura em todo mundo aprovado, não só no top 4) — se
+        # ninguém tiver foto ainda, o hero simplesmente não mostra essa
+        # coluna, em vez de usar uma imagem de banco de imagens.
+        profissional_hero = next((p for p in candidatos if p.foto_url), None)
+
+        nomes_categorias = [c.nome for c in db.query(models.Category).order_by(models.Category.nome).all()]
+
+        return templates.TemplateResponse(
+            "landing.html",
+            {
+                "request": request,
+                "categorias_destaque": categorias_destaque,
+                "cidades_destaque": cidades_mais_ativas(db),
+                "profissionais_destaque": profissionais_destaque,
+                "profissional_hero": profissional_hero,
+                "nomes_categorias": nomes_categorias,
+            },
+        )
+
+    return _resultados_catalogo(
+        request, db, usuario,
+        categoria=categoria, grupo=grupo, cidade=cidade, busca=busca, ordenar=ordenar,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Páginas de SEO local: /servicos/<categoria>/<cidade>, ex: /servicos/eletricista/macae
+# Mesma listagem do catálogo, só que com título/descrição únicos pra cada
+# combinação -- é o formato de URL que melhor ranqueia pra busca tipo
+# "eletricista em macaé".
+# ---------------------------------------------------------------------------
+
+@app.get("/servicos/{categoria_slug}/{cidade_slug}")
+def pagina_seo_categoria_cidade(
+    categoria_slug: str,
+    cidade_slug: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    categoria = next(
+        (c for c in db.query(models.Category).all() if _slugify(c.nome) == categoria_slug),
+        None,
+    )
+    if not categoria:
+        return RedirectResponse("/?explorar=1", status_code=303)
+
+    # A cidade é texto livre digitado por cada profissional -- não dá pra
+    # ter uma lista fixa de slugs válidos, então batemos o slug da URL
+    # contra as cidades que realmente existem no catálogo. Se não achar
+    # nenhuma (ex: alguém digitou uma cidade errada na URL), mostra a
+    # categoria em todas as cidades em vez de dar uma página quebrada.
+    cidades_reais = (
+        db.query(models.ProfessionalProfile.cidade)
+        .filter(models.ProfessionalProfile.cidade.isnot(None), models.ProfessionalProfile.cidade != "")
+        .distinct()
+        .all()
+    )
+    cidade_real = next((c[0] for c in cidades_reais if _slugify(c[0]) == cidade_slug), None)
+
+    if cidade_real:
+        titulo = f"{categoria.nome} em {cidade_real} — SocorreAqui"
+        h1 = f"{categoria.nome} em {cidade_real}"
+        meta = f"Encontre {categoria.nome.lower()} em {cidade_real}. Veja avaliações e chame direto no WhatsApp, sem intermediário."
+    else:
+        titulo = f"{categoria.nome} — SocorreAqui"
+        h1 = categoria.nome
+        meta = f"Encontre {categoria.nome.lower()} perto de você. Veja avaliações e chame direto no WhatsApp, sem intermediário."
+
+    return _resultados_catalogo(
+        request, db, usuario,
+        categoria=str(categoria.id), cidade=cidade_real,
+        titulo_pagina=titulo, meta_descricao_pagina=meta, h1_pagina=h1,
+    )
+
+
+SITE_URL = "https://socorreaqui.tec.br"
+
+
+@app.get("/robots.txt")
+def robots_txt():
+    conteudo = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin\n"
+        "Disallow: /minha-localizacao\n"
+        "Disallow: /profissional/perfil/editar\n"
+        f"Sitemap: {SITE_URL}/sitemap.xml\n"
+    )
+    return PlainTextResponse(conteudo)
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml(db: Session = Depends(get_db)):
+    """Só lista páginas com conteúdo de verdade (sem thin content): a home,
+    combinações categoria+cidade que têm pelo menos um profissional
+    aprovado, e o perfil público de cada um deles."""
+    urls = [(f"{SITE_URL}/", "1.0")]
+
+    aprovados = (
+        db.query(models.ProfessionalProfile)
+        .filter(
+            models.ProfessionalProfile.aprovado == True,  # noqa: E712
+            models.ProfessionalProfile.ativo == True,  # noqa: E712
+        )
+        .all()
+    )
+    for p in aprovados:
+        urls.append((f"{SITE_URL}/profissional/{p.id}", "0.7"))
+
+    combinacoes = set()
+    for p in aprovados:
+        if not p.cidade:
+            continue
+        for cat in p.categorias:
+            combinacoes.add((_slugify(cat.nome), _slugify(p.cidade)))
+    for categoria_slug, cidade_slug in sorted(combinacoes):
+        if categoria_slug and cidade_slug:
+            urls.append((f"{SITE_URL}/servicos/{categoria_slug}/{cidade_slug}", "0.8"))
+
+    itens_xml = "".join(
+        f"<url><loc>{loc}</loc><priority>{prioridade}</priority></url>"
+        for loc, prioridade in urls
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{itens_xml}"
+        "</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml")
 
 
 # ---------------------------------------------------------------------------

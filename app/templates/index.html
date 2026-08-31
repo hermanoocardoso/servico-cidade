@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block titulo %}SocorreAqui — precisou, encontrou. 🏃🔧⚡️{% endblock %}
+{% block titulo %}{{ titulo_pagina or "SocorreAqui — precisou, encontrou. 🏃🔧⚡️" }}{% endblock %}
+{% block meta_descricao %}{{ meta_descricao_pagina or "Encontre eletricistas, diaristas, manicures, mecânicos e outros profissionais de confiança perto de você. Cadastro gratuito, contato direto pelo WhatsApp." }}{% endblock %}
 
 {% macro card_profissional(p) %}
 <div class="card-prof-h">
@@ -49,7 +50,7 @@
 {%- endmacro %}
 
 {% block conteudo %}
-<h1 class="h4 fw-semibold mb-3">Encontre um profissional de confiança</h1>
+<h1 class="h4 fw-semibold mb-3">{{ h1_pagina or "Encontre um profissional de confiança" }}</h1>
 
 <form method="get" action="/" class="busca-combo mb-2" id="formBuscaIndex">
     <div class="busca-combo-campo">
