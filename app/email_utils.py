@@ -22,6 +22,7 @@ Como configurar (gratuito, sem precisar ter domínio próprio):
 4. Preencha no .env: SENDGRID_API_KEY (a chave gerada, começa com "SG.")
    e EMAIL_FROM (o mesmo e-mail que você verificou no passo 2)
 """
+import html
 import os
 import httpx
 
@@ -62,11 +63,12 @@ def enviar_email(destinatario: str, assunto: str, corpo_html: str) -> None:
 
 
 def enviar_email_confirmacao(destinatario: str, nome: str, link_confirmacao: str) -> None:
-    primeiro_nome = nome.split(" ")[0]
+    primeiro_nome = html.escape(nome.split(" ")[0])
+    link_seguro = html.escape(link_confirmacao)
     corpo = f"""
     <p>Oi, {primeiro_nome}!</p>
     <p>Confirme seu cadastro no <strong>SocorreAqui</strong> clicando no link abaixo:</p>
-    <p><a href="{link_confirmacao}">{link_confirmacao}</a></p>
+    <p><a href="{link_seguro}">{link_seguro}</a></p>
     <p style="color:#888;font-size:13px;">Se você não pediu esse cadastro, pode ignorar este e-mail.</p>
     """
     enviar_email(destinatario, "Confirme seu cadastro — SocorreAqui", corpo)
@@ -77,15 +79,25 @@ def enviar_email_novo_cadastro(
 ) -> None:
     """Avisa o admin (ADMIN_EMAIL) sempre que um cliente ou profissional novo
     se cadastra -- pra ele acompanhar o crescimento sem precisar ficar
-    entrando no /admin toda hora."""
+    entrando no /admin toda hora.
+
+    Escapa nome/email/telefone porque vêm direto do formulário de cadastro
+    (usuário controla o conteúdo) -- sem isso, alguém poderia injetar HTML
+    no e-mail que você recebe só preenchendo o próprio nome de um jeito
+    malicioso no cadastro.
+    """
     tipo_label = "Profissional" if tipo == "profissional" else "Cliente"
+    nome_seguro = html.escape(nome)
+    email_seguro = html.escape(email)
+    telefone_seguro = html.escape(telefone)
     corpo = f"""
     <p>Novo cadastro no SocorreAqui:</p>
     <ul>
         <li><strong>Tipo:</strong> {tipo_label}</li>
-        <li><strong>Nome:</strong> {nome}</li>
-        <li><strong>E-mail:</strong> {email}</li>
-        <li><strong>Telefone:</strong> {telefone}</li>
+        <li><strong>Nome:</strong> {nome_seguro}</li>
+        <li><strong>E-mail:</strong> {email_seguro}</li>
+        <li><strong>Telefone:</strong> {telefone_seguro}</li>
     </ul>
     """
-    enviar_email(destinatario_admin, f"Novo cadastro: {tipo_label} — {nome}", corpo)
+    assunto = f"Novo cadastro: {tipo_label} — {nome}".replace("\r", " ").replace("\n", " ")
+    enviar_email(destinatario_admin, assunto, corpo)

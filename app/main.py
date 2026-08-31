@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import time
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
@@ -42,9 +43,79 @@ rodar_seed()
 app = FastAPI(title="SocorreAqui")
 
 # Chave usada para assinar o cookie de sessão. Em produção, defina a
-# variável de ambiente SECRET_KEY com um valor aleatório e secreto.
-SECRET_KEY = os.getenv("SECRET_KEY", "troque-esta-chave-antes-de-colocar-no-ar")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# variável de ambiente SECRET_KEY com um valor aleatório e secreto -- sem
+# isso, qualquer pessoa que veja este código (é público no GitHub) consegue
+# forjar um cookie de sessão válido pra qualquer usuário, sem senha nenhuma.
+_SECRET_KEY_PADRAO = "troque-esta-chave-antes-de-colocar-no-ar"
+SECRET_KEY = os.getenv("SECRET_KEY", _SECRET_KEY_PADRAO)
+if SECRET_KEY == _SECRET_KEY_PADRAO:
+    print(
+        "!" * 70 + "\n"
+        "AVISO DE SEGURANÇA: SECRET_KEY não configurada -- rodando com a "
+        "chave padrão, que é pública no código-fonte. Defina a variável de "
+        "ambiente SECRET_KEY com um valor aleatório antes de expor este "
+        "app pra internet, senão qualquer pessoa consegue forjar login.\n"
+        + "!" * 70
+    )
+
+# RENDER=true é definido automaticamente pelo próprio Render em produção --
+# usamos isso pra só marcar o cookie de sessão como "só HTTPS" (Secure) lá,
+# já que em desenvolvimento local (http://127.0.0.1) isso impediria o login
+# de funcionar sem HTTPS.
+RODANDO_EM_PRODUCAO = os.getenv("RENDER", "").lower() == "true"
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    https_only=RODANDO_EM_PRODUCAO,
+)
+
+
+# --- Limite de tentativas de login (proteção simples contra força bruta) ---
+# Guardado em memória (zera a cada reinício/deploy) -- não é perfeito, mas
+# barra o ataque mais óbvio: tentar senha atrás de senha sem parar.
+_tentativas_login: dict[str, list[float]] = {}
+LOGIN_MAX_TENTATIVAS = 8
+LOGIN_JANELA_SEGUNDOS = 15 * 60  # 15 minutos
+
+
+def _ip_cliente(request: Request) -> str:
+    # Render (como qualquer hospedagem atrás de proxy) entrega o IP real do
+    # visitante em X-Forwarded-For -- sem isso, request.client.host seria
+    # sempre o IP interno do proxy, e todo mundo cairia no mesmo balde.
+    encaminhado = request.headers.get("x-forwarded-for", "")
+    if encaminhado:
+        return encaminhado.split(",")[0].strip()
+    return request.client.host if request.client else "desconhecido"
+
+
+def _login_bloqueado(chave: str) -> bool:
+    agora = time.time()
+    tentativas = _tentativas_login.get(chave, [])
+    tentativas = [t for t in tentativas if agora - t < LOGIN_JANELA_SEGUNDOS]
+    _tentativas_login[chave] = tentativas
+    return len(tentativas) >= LOGIN_MAX_TENTATIVAS
+
+
+def _registrar_tentativa_falha(chave: str) -> None:
+    _tentativas_login.setdefault(chave, []).append(time.time())
+
+
+def _limpar_tentativas(chave: str) -> None:
+    _tentativas_login.pop(chave, None)
+
+
+@app.middleware("http")
+async def cabecalhos_de_seguranca(request: Request, call_next):
+    """Cabeçalhos básicos de proteção do navegador -- não substituem outras
+    práticas, mas custam nada e bloqueiam classes inteiras de ataque
+    (clickjacking, MIME sniffing, vazamento de referrer)."""
+    resposta = await call_next(request)
+    resposta.headers["X-Content-Type-Options"] = "nosniff"
+    resposta.headers["X-Frame-Options"] = "DENY"
+    resposta.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if RODANDO_EM_PRODUCAO:
+        resposta.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return resposta
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()  # e-mail do seu usuário admin, defina no .env
 
@@ -559,7 +630,6 @@ def login(
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
-    usuario = db.query(models.User).filter(models.User.email == email).first()
 
     def erro(mensagem):
         return templates.TemplateResponse(
@@ -567,14 +637,23 @@ def login(
             {"request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado, "next": next},
         )
 
+    chave_limite = _ip_cliente(request)
+    if _login_bloqueado(chave_limite):
+        return erro("Muitas tentativas de login. Aguarde alguns minutos e tente de novo.")
+
+    usuario = db.query(models.User).filter(models.User.email == email).first()
+
     if usuario and not usuario.senha_hash:
+        _registrar_tentativa_falha(chave_limite)
         return erro('Essa conta usa login com Google. Clique em "Entrar com Google" abaixo.')
     if not usuario or not auth.verificar_senha(senha, usuario.senha_hash):
+        _registrar_tentativa_falha(chave_limite)
         return erro("E-mail ou senha incorretos.")
 
     if not usuario.ativo:
         return erro("Essa conta foi bloqueada. Entre em contato com o suporte.")
 
+    _limpar_tentativas(chave_limite)
     request.session["user_id"] = usuario.id
     return RedirectResponse(_next_seguro(next), status_code=303)
 
