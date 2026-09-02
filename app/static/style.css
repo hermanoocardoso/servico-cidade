@@ -311,12 +311,14 @@ a.btn:visited {
    auto-fit + minmax faz o layout se adaptar sozinho à quantidade de
    resultados: 1 resultado ocupa a linha inteira, 2 viram duas colunas e
    a partir de 3 o desktop usa três — nunca sobra um card perdido num
-   canto vazio. */
+   canto vazio. Alinhado à esquerda (justify-items: start) pra quando a
+   célula fica mais larga que o card (grupo com 1-2 resultados) ele não
+   "flutuar" centralizado no meio da página. */
 .resultados-grade {
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-    justify-items: center;
+    justify-items: start;
 }
 
 /* Card compacto: foto pequena + dados + ações numa faixa só embaixo. */
