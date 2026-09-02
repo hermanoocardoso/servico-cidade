@@ -82,8 +82,48 @@
         </div>
     </form>
     <details>
-        <summary class="ver-todas-categorias">Ver todas as categorias ({{ categorias|length }})</summary>
-        <p class="small text-muted mt-2 mb-0">{{ categorias|map(attribute='nome')|join(", ") }}</p>
+        <summary class="ver-todas-categorias">Editar categorias existentes ({{ categorias|length }})</summary>
+        <div class="table-responsive mt-2">
+        {% for c in categorias %}
+        <form id="formCategoria{{ c.id }}" method="post" action="/admin/categoria/{{ c.id }}/editar" class="d-none"></form>
+        {% endfor %}
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Grupo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in categorias %}
+                <tr>
+                    <td>
+                        <input form="formCategoria{{ c.id }}" type="text" name="nome" value="{{ c.nome }}" class="form-control form-control-sm" required>
+                    </td>
+                    <td>
+                        <select form="formCategoria{{ c.id }}" name="grupo" id="selectGrupoCategoria{{ c.id }}" class="form-select form-select-sm"
+                                onchange="document.getElementById('novoGrupoWrap{{ c.id }}').style.display = (this.value === '_novo') ? 'block' : 'none';">
+                            <option value="">-- sem grupo --</option>
+                            {% for g in grupos_categorias %}
+                            <option value="{{ g }}" {% if c.grupo == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                            <option value="_novo" {% if c.grupo and c.grupo not in grupos_categorias %}selected{% endif %}>+ Novo grupo...</option>
+                        </select>
+                        <input form="formCategoria{{ c.id }}" type="text" id="novoGrupoWrap{{ c.id }}" name="novo_grupo"
+                               class="form-control form-control-sm mt-1"
+                               style="display:{{ 'block' if c.grupo and c.grupo not in grupos_categorias else 'none' }};"
+                               placeholder="Nome do novo grupo"
+                               value="{{ c.grupo if c.grupo and c.grupo not in grupos_categorias else '' }}">
+                    </td>
+                    <td class="text-nowrap">
+                        <button form="formCategoria{{ c.id }}" class="btn btn-outline-primary btn-sm">Salvar</button>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
     </details>
 </div>
 

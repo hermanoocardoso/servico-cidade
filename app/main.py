@@ -1945,6 +1945,37 @@ def admin_categoria_nova(
     return RedirectResponse("/admin", status_code=303)
 
 
+@app.post("/admin/categoria/{categoria_id}/editar")
+def admin_categoria_editar(
+    categoria_id: int,
+    nome: str = Form(...),
+    grupo: str = Form(""),
+    novo_grupo: str = Form(""),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    categoria = db.query(models.Category).filter(models.Category.id == categoria_id).first()
+    if categoria:
+        nome = nome.strip()
+        # Não deixa renomear pra um nome que já é de outra categoria --
+        # a coluna é unique e isso derrubaria a query com um IntegrityError.
+        ja_existe_outra = nome and db.query(models.Category).filter(
+            func.lower(models.Category.nome) == nome.lower(),
+            models.Category.id != categoria.id,
+        ).first()
+        if nome and not ja_existe_outra:
+            categoria.nome = nome
+
+        grupo_final = (novo_grupo if grupo == "_novo" else grupo).strip()
+        categoria.grupo = grupo_final or None
+        db.commit()
+
+    return RedirectResponse("/admin", status_code=303)
+
+
 @app.get("/admin/profissional/{perfil_id}/editar")
 def admin_form_editar_perfil(
     perfil_id: int,
