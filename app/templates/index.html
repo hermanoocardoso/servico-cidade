@@ -122,9 +122,13 @@
     var status = document.getElementById("checkinStatus");
     var inputCidade = document.getElementById("inputCidadeBusca");
 
-    btn.addEventListener("click", function () {
+    // automatico=true quando é pedido sozinho ao abrir a página (sem clique
+    // do usuário) -- nesse caso fica quieto se der erro/negar, já que ele
+    // não pediu nada; se ele clicar no botão de verdade, aí sim mostra o
+    // motivo de não ter funcionado.
+    function pedirLocalizacao(automatico) {
         if (!navigator.geolocation) {
-            status.textContent = "Seu navegador não suporta localização automática.";
+            if (!automatico) status.textContent = "Seu navegador não suporta localização automática.";
             return;
         }
         btn.disabled = true;
@@ -168,17 +172,23 @@
                                 inputCidade.value = local;
                                 inputCidade.form.submit();
                             });
-                        } else {
+                        } else if (!automatico) {
                             status.textContent = "Não consegui identificar sua cidade. Digite manualmente acima.";
+                        } else {
+                            status.textContent = "";
                         }
                     })
                     .catch(function () {
                         btn.disabled = false;
-                        status.textContent = "Não consegui identificar seu bairro agora. Digite manualmente acima.";
+                        status.textContent = automatico ? "" : "Não consegui identificar seu bairro agora. Digite manualmente acima.";
                     });
             },
             function (erro) {
                 btn.disabled = false;
+                if (automatico) {
+                    status.textContent = "";
+                    return;
+                }
                 if (erro.code === erro.PERMISSION_DENIED) {
                     status.textContent = "Você não permitiu o acesso à localização.";
                 } else {
@@ -187,7 +197,21 @@
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
-    });
+    }
+
+    btn.addEventListener("click", function () { pedirLocalizacao(false); });
+
+    {% if profissionais_por_cidade %}
+    // Home sem nenhum filtro ainda: pede a localização sozinho, sem
+    // precisar clicar em "Usar minha localização" -- uma vez por aba, pra
+    // não ficar reabrindo o pedido de permissão a cada navegação de volta
+    // pra home. Continua exigindo o clique em "buscar profissionais aqui"
+    // antes de filtrar de verdade (ver comentário acima sobre precisão).
+    if (!sessionStorage.getItem("checkinAutoPedido")) {
+        sessionStorage.setItem("checkinAutoPedido", "1");
+        pedirLocalizacao(true);
+    }
+    {% endif %}
 })();
 </script>
 
