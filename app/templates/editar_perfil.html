@@ -30,6 +30,18 @@
         <input type="file" name="foto" class="form-control" accept="image/*">
         {% else %}
         <input type="file" name="foto" class="form-control" accept="image/*" {% if not admin_editando %}required{% endif %}>
+        <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="foto_e_logo" id="fotoEhLogo"
+                   {% if perfil and perfil.foto_e_logo %}checked{% endif %}>
+            <label class="form-check-label" for="fotoEhLogo">
+                É uma logomarca, não uma foto de pessoa
+                <span class="text-muted small d-block">
+                    Marque e a imagem aparece inteira, sem cortar as bordas. Foto de
+                    pessoa fica melhor desmarcada, preenchendo o quadro. Imagem com
+                    fundo transparente é reconhecida sozinha.
+                </span>
+            </label>
+        </div>
         <div class="form-text">Uma foto sua (ou do seu trabalho) é obrigatória — ajuda a gerar confiança.</div>
         {% endif %}
     </div>

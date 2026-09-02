@@ -41,7 +41,7 @@
 <header class="perfil-topo">
     <div class="perfil-topo-identidade">
         {% if perfil.foto_url %}
-            <img src="{{ perfil.foto_url }}" class="perfil-foto" alt="{{ perfil.usuario.nome }}" decoding="async">
+            <img src="{{ perfil.foto_url }}" class="perfil-foto{% if perfil.foto_e_logo %} img-logo{% endif %}" alt="{{ perfil.usuario.nome }}" decoding="async">
         {% else %}
             <div class="perfil-foto perfil-foto-vazia" aria-hidden="true">{{ perfil.usuario.nome.strip()[0] | upper }}</div>
         {% endif %}

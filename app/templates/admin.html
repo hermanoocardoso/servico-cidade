@@ -56,6 +56,19 @@
 </div>
 
 <div class="card p-3 p-md-4 mb-4">
+    <h5 class="mb-1">Imagens de perfil</h5>
+    <p class="text-muted small mb-2">
+        Logomarca precisa aparecer inteira; foto de pessoa fica melhor preenchendo
+        o quadro. Imagem nova com fundo transparente é reconhecida no envio — este
+        botão alcança as que já estavam cadastradas antes. Para logomarca em JPEG
+        (fundo branco), marque a caixinha em "Editar perfil".
+    </p>
+    <form method="post" action="/admin/reanalisar-fotos">
+        <button class="btn btn-outline-primary btn-sm">Procurar logomarcas nas fotos já cadastradas</button>
+    </form>
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
     <h5>Aguardando aprovação ({{ pendentes|length }})</h5>
     {% if pendentes %}
     <div class="table-responsive">

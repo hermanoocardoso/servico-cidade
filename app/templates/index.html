@@ -6,7 +6,8 @@
 <article class="card-prof">
     <a href="/profissional/{{ p.id }}" class="card-prof-foto" tabindex="-1" aria-hidden="true">
         {% if p.foto_url %}
-            <img src="{{ p.foto_url }}" alt="" loading="lazy" decoding="async">
+            <img src="{{ p.foto_url }}" alt="" loading="lazy" decoding="async"
+                 class="{% if p.foto_e_logo %}img-logo{% endif %}">
         {% else %}
             {# Avatar padrão: inicial do nome, no lugar de um bloco vazio grande. #}
             <span class="card-prof-avatar">{{ p.usuario.nome.strip()[0] | upper }}</span>

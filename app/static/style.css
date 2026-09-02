@@ -892,6 +892,10 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     .hero-foto-profissional { height: 300px; }
     .hero-review-card { right: 0.5rem; bottom: -0.75rem; }
 }
+@media (max-width: 767px) {
+    /* No celular essa imagem vinha empurrando o conteúdo pra baixo demais. */
+    .hero-foto-profissional { height: 220px; }
+}
 
 /* Ícone redondo nos cards "Sou cliente" / "Sou profissional" da landing */
 .landing-role-icon {
@@ -1771,4 +1775,37 @@ summary:focus-visible,
         font-size: 0.8rem;
         padding-inline: 0.4rem;
     }
+}
+
+
+/* --- Logomarca no lugar de foto ---------------------------------------
+   Boa parte dos cadastros é de empresa e sobe a logomarca em vez de uma
+   foto de pessoa. Foto fica melhor preenchendo o quadro (object-fit:
+   cover, o padrão), mas logo cortada fica péssima -- o nome da marca some.
+   O JS em base.html identifica a logo pelos cantos (transparentes ou de
+   uma cor chapada só) e marca a imagem com .img-logo; aí ela passa a
+   caber inteira, sem corte e sem distorcer.
+
+   Estas regras vêm no fim do arquivo de propósito: empatam em
+   especificidade com as regras de cada contexto e ganham pela ordem. */
+img.img-logo {
+    object-fit: contain;
+    background: #fff;
+}
+.card-prof-foto img.img-logo {
+    padding: 5px;
+}
+img.perfil-foto.img-logo {
+    padding: 10px;
+    border: 1px solid #EEF0F7;
+}
+img.card-prof-destaque-foto.img-logo {
+    padding: 12px;
+}
+img.hero-foto-profissional.img-logo {
+    padding: 20px;
+}
+img.foto-atual-thumb.img-logo {
+    padding: 4px;
+    border: 1px solid #EEF0F7;
 }

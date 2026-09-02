@@ -82,7 +82,7 @@
         {% if profissional_hero %}
         <div class="col-lg-5">
             <div class="hero-visual-wrap">
-                <img src="{{ profissional_hero.foto_url }}" class="hero-foto-profissional" alt="{{ profissional_hero.usuario.nome }}" decoding="async" fetchpriority="high">
+                <img src="{{ profissional_hero.foto_url }}" class="hero-foto-profissional{% if profissional_hero.foto_e_logo %} img-logo{% endif %}" alt="{{ profissional_hero.usuario.nome }}" decoding="async" fetchpriority="high">
                 <div class="hero-review-card">
                     <strong>{{ profissional_hero.usuario.nome.split(" ")[0] }}</strong>
                     <div class="text-muted small">
@@ -272,7 +272,7 @@
     {% for p in profissionais_destaque %}
         <div class="card-prof-destaque">
             {% if p.foto_url %}
-                <img src="{{ p.foto_url }}" class="card-prof-destaque-foto" alt="{{ p.usuario.nome }}" loading="lazy" decoding="async">
+                <img src="{{ p.foto_url }}" class="card-prof-destaque-foto{% if p.foto_e_logo %} img-logo{% endif %}" alt="{{ p.usuario.nome }}" loading="lazy" decoding="async">
             {% else %}
                 <div class="card-prof-destaque-foto-vazia">{{ p.usuario.nome.strip()[0] | upper }}</div>
             {% endif %}

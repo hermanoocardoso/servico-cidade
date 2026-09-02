@@ -61,6 +61,12 @@ def _garantir_colunas_novas():
                 "ALTER TABLE professional_profiles "
                 "ADD COLUMN criado_via_indicacao BOOLEAN NOT NULL DEFAULT FALSE"
             ))
+    if "foto_e_logo" not in colunas:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE professional_profiles "
+                "ADD COLUMN foto_e_logo BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
     if "tipo_perfil" not in colunas:
         # Todo perfil que já existe é de prestador de serviço -- quem for
         # empresa/administração da plataforma é marcado depois, na mão.
@@ -308,6 +314,32 @@ def _validar_e_normalizar_foto(conteudo: bytes, content_type: str) -> bytes | No
         return buffer.getvalue()
     except Exception:
         return None
+
+def _imagem_tem_transparencia(conteudo: bytes) -> bool:
+    """Diz se a imagem tem fundo transparente.
+
+    Isso não é palpite, é fato: foto de pessoa nunca vem com o fundo
+    recortado, então transparência quer dizer logomarca. Importa pro
+    enquadramento na tela -- imagem transparente PRECISA aparecer inteira,
+    porque cortar tira parte da marca e o fundo vazado deixa ver o que
+    está atrás.
+
+    Tentei também adivinhar o resto (logo em JPEG com fundo branco, pelos
+    cantos de cor chapada), mas nas imagens reais do site isso marcava foto
+    de pessoa como logomarca -- por isso os casos ambíguos ficam na
+    caixinha "é uma logomarca" do formulário, em vez de virar chute.
+    """
+    from PIL import Image
+
+    try:
+        imagem = Image.open(io.BytesIO(conteudo))
+        if imagem.mode not in ("RGBA", "LA", "PA") and "transparency" not in imagem.info:
+            return False  # formato sem canal alfa (JPEG, por exemplo)
+        menor_alfa, _maior = imagem.convert("RGBA").getchannel("A").getextrema()
+        return menor_alfa < 250
+    except Exception:
+        return False
+
 
 # Especialidades médicas mais comuns pro <select> — se não estiver na lista,
 # o profissional pode digitar a própria em "Outra especialidade".
@@ -1627,6 +1659,7 @@ def _aplicar_dados_perfil(
     valor_mao_de_obra, whatsapp, categorias_ids, outra_categoria,
     crm, especialidade_medica, especialidade_medica_outra,
     atende_convenio, convenios_aceitos, foto,
+    foto_e_logo=None,
     exigir_completo=True,
 ):
     """
@@ -1659,6 +1692,7 @@ def _aplicar_dados_perfil(
             return "Selecione pelo menos uma categoria (ou digite em \"Outra categoria\")."
 
     tem_foto_nova = bool(foto and foto.filename)
+    foto_nova_transparente = False
     if exigir_completo and not tem_foto_nova and not perfil.foto_url:
         return "Foto é obrigatória."
 
@@ -1674,6 +1708,13 @@ def _aplicar_dados_perfil(
         extensao = EXTENSOES_FOTO_PERMITIDAS[foto.content_type]
         nome_arquivo = f"profissional_{perfil.usuario_id}{extensao}"
         perfil.foto_url = storage.salvar_foto(conteudo_normalizado, nome_arquivo, foto.content_type)
+        # Olha os bytes ORIGINAIS: a normalização pra JPEG descarta a
+        # transparência, que é justamente o que interessa aqui.
+        foto_nova_transparente = _imagem_tem_transparencia(conteudo)
+
+    # A caixinha do formulário manda. Imagem com fundo transparente liga
+    # sozinha, porque recortada ela apareceria vazada de qualquer jeito.
+    perfil.foto_e_logo = bool(foto_e_logo) or foto_nova_transparente
 
     perfil.cidade = cidade
     perfil.bairro = bairro
@@ -1744,6 +1785,7 @@ def salvar_perfil(
     especialidade_medica_outra: str = Form(""),
     atende_convenio: str | None = Form(None),
     convenios_aceitos: str = Form(""),
+    foto_e_logo: str | None = Form(None),
     foto: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
@@ -1764,6 +1806,7 @@ def salvar_perfil(
         crm=crm, especialidade_medica=especialidade_medica,
         especialidade_medica_outra=especialidade_medica_outra,
         atende_convenio=atende_convenio, convenios_aceitos=convenios_aceitos,
+        foto_e_logo=foto_e_logo,
         foto=foto,
     )
     if erro_msg:
@@ -1922,6 +1965,7 @@ def admin_salvar_perfil(
     especialidade_medica_outra: str = Form(""),
     atende_convenio: str | None = Form(None),
     convenios_aceitos: str = Form(""),
+    foto_e_logo: str | None = Form(None),
     tipo_perfil: str = Form("professional"),
     foto: UploadFile | None = File(None),
     db: Session = Depends(get_db),
@@ -1947,6 +1991,7 @@ def admin_salvar_perfil(
         crm=crm, especialidade_medica=especialidade_medica,
         especialidade_medica_outra=especialidade_medica_outra,
         atende_convenio=atende_convenio, convenios_aceitos=convenios_aceitos,
+        foto_e_logo=foto_e_logo,
         foto=foto, exigir_completo=False,
     )
     if erro_msg:
@@ -2138,6 +2183,50 @@ def admin_excluir_usuario(
     if alvo and not _eh_email_admin(alvo.email):  # nenhum admin exclui outro (nem a si)
         db.delete(alvo)
         db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/reanalisar-fotos")
+def admin_reanalisar_fotos(
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    """Marca como logomarca as imagens de fundo transparente já cadastradas.
+
+    Imagens novas já são reconhecidas no upload; esta ação alcança as que
+    subiram antes disso. Baixa cada uma (do R2 ou do disco) e liga o campo
+    quando encontra transparência. Nunca DESmarca nada: quem foi marcado na
+    mão pelo formulário continua marcado. Imagem fora do ar é ignorada --
+    nada além desse campo é tocado.
+    """
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    import urllib.request
+
+    perfis = db.query(models.ProfessionalProfile).filter(
+        models.ProfessionalProfile.foto_url.isnot(None),
+        models.ProfessionalProfile.foto_url != "",
+    ).all()
+
+    for perfil in perfis:
+        url = perfil.foto_url
+        try:
+            if url.startswith("/static/"):
+                caminho = os.path.join(BASE_DIR, url.replace("/static/", "static/", 1))
+                with open(caminho, "rb") as arquivo:
+                    conteudo = arquivo.read()
+            else:
+                # O R2 recusa (403) requisição sem User-Agent de navegador.
+                pedido = urllib.request.Request(url, headers={"User-Agent": "SocorreAqui/1.0"})
+                with urllib.request.urlopen(pedido, timeout=10) as resposta:
+                    conteudo = resposta.read(TAMANHO_MAXIMO_FOTO + 1)
+        except Exception:
+            continue  # imagem fora do ar ou caminho quebrado: deixa como está
+        if _imagem_tem_transparencia(conteudo):
+            perfil.foto_e_logo = True
+
+    db.commit()
     return RedirectResponse("/admin", status_code=303)
 
 

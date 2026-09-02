@@ -86,6 +86,11 @@ class ProfessionalProfile(Base):
     descricao = Column(Text, nullable=True)
     valor_mao_de_obra = Column(String(120), nullable=True)  # texto livre: "A partir de R$ 80" ou "A combinar"
     foto_url = Column(String(255), nullable=True)
+    # True quando a imagem enviada é uma logomarca de empresa, e não a foto
+    # de uma pessoa. Muda só o enquadramento na tela: foto preenche o quadro
+    # (pode cortar as bordas), logo precisa caber inteira -- cortada, o nome
+    # da marca some. Preenchido sozinho no upload (ver _imagem_parece_logo).
+    foto_e_logo = Column(Boolean, default=False, nullable=False)
     whatsapp = Column(String(20), nullable=True)  # se vazio, usa o telefone do cadastro
 
     # Campos específicos de médico (só fazem sentido quando a categoria
