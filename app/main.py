@@ -1872,6 +1872,7 @@ def admin_painel(
     ).order_by(models.User.criado_em.desc()).all()
 
     categorias = db.query(models.Category).order_by(models.Category.nome).all()
+    grupos_categorias = sorted({c.grupo for c in categorias if c.grupo})
 
     # --- Números do site ---------------------------------------------------
     sete_dias_atras = datetime.utcnow() - timedelta(days=7)
@@ -1917,6 +1918,7 @@ def admin_painel(
             "telefones_ja_profissionais": telefones_ja_profissionais,
             "clientes": clientes,
             "categorias": categorias,
+            "grupos_categorias": grupos_categorias,
             "emails_admin": ADMIN_EMAILS,
             "numeros": numeros,
         },
@@ -1927,6 +1929,7 @@ def admin_painel(
 def admin_categoria_nova(
     nome: str = Form(...),
     grupo: str = Form(""),
+    novo_grupo: str = Form(""),
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
 ):
@@ -1934,9 +1937,9 @@ def admin_categoria_nova(
         return RedirectResponse("/", status_code=303)
 
     categoria = _buscar_ou_criar_categoria(db, nome)
-    grupo = grupo.strip()
-    if categoria and grupo and not categoria.grupo:
-        categoria.grupo = grupo
+    grupo_final = (novo_grupo if grupo == "_novo" else grupo).strip()
+    if categoria and grupo_final and not categoria.grupo:
+        categoria.grupo = grupo_final
         db.commit()
 
     return RedirectResponse("/admin", status_code=303)
