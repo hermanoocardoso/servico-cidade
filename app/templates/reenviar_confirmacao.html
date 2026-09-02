@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Reenviar confirmação{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="landing-role-icon mx-auto mb-3">✉️</div>
+        <h3 class="mb-4 text-center">Reenviar e-mail de confirmação</h3>
+
+        {% if enviado %}
+        <div class="alert alert-success">
+            Se esse e-mail tiver uma conta pendente de confirmação, reenviamos o link agora.
+            Confira sua caixa de entrada (e o spam).
+        </div>
+        <p class="text-center"><a href="/login">Voltar para o login</a></p>
+        {% else %}
+        <form method="post" action="/reenviar-confirmacao">
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" class="form-control" value="{{ email }}" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Reenviar</button>
+        </form>
+        <p class="text-center mt-3 text-muted"><a href="/login">Voltar para o login</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -307,91 +307,220 @@ a.btn:visited {
     padding: 0.9rem 1.1rem;
 }
 
-/* --- Catálogo: card horizontal (foto + info + ações lado a lado) --- */
-.resultados-lista {
-    display: flex;
-    flex-direction: column;
+/* --- Catálogo: grade de resultados ---------------------------------
+   auto-fit + minmax faz o layout se adaptar sozinho à quantidade de
+   resultados: 1 resultado ocupa a linha inteira, 2 viram duas colunas e
+   a partir de 3 o desktop usa três — nunca sobra um card perdido num
+   canto vazio. */
+.resultados-grade {
+    display: grid;
     gap: 0.75rem;
-    max-width: 900px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    justify-items: center;
 }
-.resultados-lista.resultados-centralizado {
-    margin: 0 auto;
-}
-.card-prof-h {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+
+/* Card compacto: foto pequena + dados + ações numa faixa só embaixo. */
+.card-prof {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    /* A primeira faixa cresce, a segunda (botões) fica sempre no rodapé —
+       assim os cards de uma mesma linha terminam alinhados mesmo quando um
+       nome ocupa duas linhas. */
+    grid-template-rows: 1fr auto;
+    gap: 0.55rem 0.85rem;
+    align-items: start;
+    /* Com poucos resultados a coluna fica larga; o card para de crescer
+       num tamanho legível em vez de virar uma faixa de ponta a ponta. */
+    width: 100%;
+    max-width: 600px;
     background: #fff;
+    border: 1px solid #EEF0F7;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
-    padding: 1rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 0.85rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.card-prof-h:hover {
+.card-prof:hover {
     transform: translateY(-2px);
     box-shadow: var(--sombra-hover);
+    border-color: rgba(var(--cor-primaria-rgb), 0.25);
 }
-.card-prof-h-foto {
-    flex: 0 0 88px;
-    width: 88px;
-    height: 88px;
+.card-prof-foto {
+    display: block;
+    width: 64px;
+    height: 64px;
     border-radius: 14px;
-    object-fit: cover;
+    overflow: hidden;
+    background: #EEF0F7;
 }
-.card-prof-h-foto-vazia {
+.card-prof-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+/* Sem foto: inicial do nome num avatar discreto, em vez de um retângulo
+   vazio grande. */
+.card-prof-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #EEF0F7;
-    font-size: 1.6rem;
+    width: 100%;
+    height: 100%;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--cor-primaria-escura);
+    background: linear-gradient(135deg, #EEF1FF, #DCE7FF);
 }
-.card-prof-h-info {
-    flex: 1 1 auto;
+.card-prof-info {
     min-width: 0;
 }
-.card-prof-h-info h6 {
+.card-prof-nome {
+    font-size: 1rem;
     font-weight: 600;
-    margin-bottom: 0.3rem;
+    line-height: 1.25;
+    margin: 0 0 0.15rem;
+    overflow-wrap: anywhere;
 }
-.card-prof-h-categorias {
+.card-prof-nome a {
+    color: var(--cor-texto);
+    text-decoration: none;
+}
+.card-prof-nome a:hover {
+    color: var(--cor-primaria);
+}
+.card-prof-categoria {
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin: 0 0 0.1rem;
+    overflow-wrap: anywhere;
+}
+.card-prof-mais {
+    color: var(--cor-texto-suave);
+    font-weight: 500;
+}
+.card-prof-local {
+    font-size: 0.78rem;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.1rem;
+    overflow-wrap: anywhere;
+}
+.card-prof-nota {
+    font-size: 0.82rem;
+    margin: 0;
+}
+.card-prof-nota-total,
+.card-prof-sem-nota {
+    color: var(--cor-texto-suave);
+}
+/* Selo de disponibilidade — só é renderizado quando o dado existir de
+   verdade (hoje o cadastro ainda não tem esse campo). */
+.card-prof-status {
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin: 0.2rem 0 0;
+}
+.status-agora { color: #15803D; }
+.status-hoje { color: #A16207; }
+.status-indisponivel { color: var(--cor-texto-suave); }
+
+.card-prof-acoes {
+    grid-column: 1 / -1;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    margin-bottom: 0.35rem;
+    gap: 0.5rem;
 }
-.card-prof-h-categorias .badge {
-    font-size: 0.72rem;
-}
-.card-prof-h-acoes {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-width: 140px;
-}
-@media (max-width: 575px) {
-    .card-prof-h {
-        flex-wrap: wrap;
-    }
-    .card-prof-h-foto {
-        flex-basis: 64px;
-        width: 64px;
-        height: 64px;
-    }
-    .card-prof-h-acoes {
-        flex-basis: 100%;
-        flex-direction: row;
-        min-width: 0;
-    }
-    .card-prof-h-acoes .btn {
-        flex: 1;
-    }
+/* Os botões crescem pra preencher o card no celular, mas param de crescer
+   num tamanho de botão de verdade — num card largo do desktop eles não
+   viram duas faixas gigantes. */
+.card-prof-acoes .btn {
+    flex: 1 1 0;
+    max-width: 200px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
 }
 
-/* Título discreto de seção (ex: nome do bairro agrupando o catálogo) */
+/* Selos pequenos (Indicado, sua cidade...) */
+.selo {
+    display: inline-block;
+    font-size: 0.66rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    vertical-align: middle;
+}
+.selo-indicado {
+    background: #FFF4D6;
+    color: #8A6100;
+}
+.selo-cidade {
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
+}
+
+/* Cabeçalho dos resultados: contagem real + ordenação */
+.resultados-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+.resultados-contagem {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    margin: 0;
+}
+.resultados-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.resultados-vazio {
+    background: #fff;
+    border: 1px solid #EEF0F7;
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+.resultados-vazio p {
+    flex-basis: 100%;
+}
+.aviso-suave {
+    background: #EEF1FF;
+    border-radius: var(--raio-pequeno);
+    padding: 0.65rem 0.9rem;
+    font-size: 0.82rem;
+    color: var(--cor-primaria-escura);
+    margin-bottom: 1rem;
+}
+.rodape-catalogo {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #E3E6EF;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--cor-texto-suave);
+}
+.rodape-catalogo-sep {
+    margin: 0 0.5rem;
+}
+
+/* Título discreto de seção (ex: nome da cidade agrupando o catálogo) */
 .titulo-secao {
-    letter-spacing: 0.04em;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.75rem;
 }
 
 /* Atalhos em formato de botão (barra de saudação no topo da home) —
@@ -449,41 +578,168 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     text-decoration: underline;
 }
 
-/* Quadrante de bairro no catálogo — separa visivelmente cada grupo */
-.secao-bairro {
-    background: #fff;
-    border: 1px solid #EEF0F7;
-    border-radius: var(--raio);
-    padding: 1.25rem;
+/* Agrupamento por cidade no catálogo — separador leve, sem caixa em volta
+   (os cards já têm fundo branco próprio). */
+.secao-cidade {
+    margin-bottom: 1.75rem;
 }
-.secao-bairro-destaque {
-    background: #F3F5FF;
-    border: 1px solid #D7DDFF;
+.secao-cidade-destaque .titulo-secao {
+    color: var(--cor-primaria);
 }
 
-/* --- Menu de categorias com ícone + painel no hover (estilo GetNinjas) --- */
-.mega-menu {
+/* --- Categorias populares (fileira compacta) ------------------------
+   No celular vira um carrossel horizontal que sangra até a borda da tela;
+   no desktop simplesmente quebra em linhas. Cada item ocupa ~78px, com
+   área de toque cheia. */
+.cats-rapidas {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.1rem 0.5rem;
-    position: relative;
+    gap: 0.5rem;
+    margin: 0 -0.75rem 1rem;
+    padding: 0.25rem 0.75rem 0.6rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
 }
-.mega-item-wrap {
-    position: relative;
+.cats-rapidas::-webkit-scrollbar {
+    display: none;
 }
-.mega-item {
+.cat-chip {
     flex: 0 0 auto;
-    width: 82px;
+    width: 78px;
+    min-height: 78px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    text-decoration: none;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.3rem;
+    background: #fff;
+    border: 1px solid #EBECF2;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(31, 35, 51, 0.05);
     color: var(--cor-texto);
     text-align: center;
+    text-decoration: none;
+    scroll-snap-align: start;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
-/* Ícone de categoria discreto: sem círculo colorido chamativo, só um fundo
-   neutro bem sutil -- o destaque de verdade fica pro estado "selecionado". */
+.cat-chip:visited {
+    color: var(--cor-texto);
+}
+.cat-chip:hover,
+.cat-chip:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra);
+    border-color: rgba(var(--cor-primaria-rgb), 0.35);
+    color: var(--cor-primaria-escura);
+}
+.cat-chip:active {
+    transform: translateY(0) scale(0.97);
+}
+.cat-chip.active {
+    border-color: var(--cor-primaria);
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
+}
+.cat-chip-icone {
+    font-size: 1.45rem;
+    line-height: 1;
+}
+.cat-chip-rotulo {
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1.15;
+}
+.cat-chip-todas {
+    background: #EEF1FF;
+    border-color: #D7DDFF;
+    color: var(--cor-primaria-escura);
+}
+@media (min-width: 768px) {
+    .cats-rapidas {
+        flex-wrap: wrap;
+        overflow: visible;
+        margin-inline: 0;
+        padding-inline: 0;
+    }
+    .cat-chip {
+        width: 88px;
+        min-height: 84px;
+    }
+}
+
+/* Painel com a lista COMPLETA de categorias (todas continuam aqui,
+   agrupadas como sempre estiveram). Nasce visível no HTML: sem JS o
+   link "Ver todas" só rola até aqui. */
+.cats-todas {
+    background: #fff;
+    border: 1px solid #EEF0F7;
+    border-radius: var(--raio);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+}
+.cats-todas:focus {
+    outline: none;
+}
+.cats-todas-atalho {
+    display: inline-block;
+    margin-bottom: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cor-primaria);
+    text-decoration: none;
+}
+.cats-todas-atalho:hover {
+    text-decoration: underline;
+}
+.cats-todas-grupo + .cats-todas-grupo {
+    margin-top: 0.9rem;
+}
+.cats-todas-titulo {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.4rem;
+}
+.cats-todas-titulo a {
+    color: inherit;
+    text-decoration: none;
+}
+.cats-todas-titulo a:hover,
+.cats-todas-titulo a.active {
+    color: var(--cor-primaria);
+}
+.cats-todas-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.cats-todas-link {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    background: #F4F5F8;
+    color: var(--cor-texto);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.cats-todas-link:visited {
+    color: var(--cor-texto);
+}
+.cats-todas-link:hover {
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
+}
+.cats-todas-link.active {
+    background: var(--cor-primaria);
+    color: #fff;
+}
+
+/* Ícone redondo de categoria — ainda usado nos cards de serviço da home
+   de visitante. */
 .category-icon {
     width: 52px;
     height: 52px;
@@ -496,68 +752,10 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     font-size: 1.4rem;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
-.mega-item:hover .category-icon {
-    transform: translateY(-3px);
-    border-color: rgba(var(--cor-primaria-rgb), 0.35);
-}
 .category-label {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 500;
     line-height: 1.2;
-}
-.mega-item.active .category-icon {
-    background: var(--cor-primaria);
-}
-.mega-item.active .category-label {
-    color: var(--cor-primaria);
-    font-weight: 600;
-}
-
-/* Painel que abre ao passar o mouse (ou focar via teclado) num grupo.
-   Em telas de toque não existe ":hover" de verdade, então o clique no
-   ícone simplesmente navega direto pro grupo — o painel é um extra
-   pra quem usa mouse. */
-.mega-panel {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translate(-50%, 6px);
-    background: #fff;
-    border: 1px solid #EEF0F7;
-    border-radius: var(--raio);
-    box-shadow: var(--sombra-hover);
-    padding: 0.6rem;
-    display: flex;
-    flex-direction: column;
-    min-width: 220px;
-    max-width: 280px;
-    z-index: 20;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.mega-item-wrap:hover .mega-panel,
-.mega-item-wrap:focus-within .mega-panel {
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, 2px);
-}
-.mega-panel-link {
-    display: block;
-    padding: 0.45rem 0.6rem;
-    border-radius: 8px;
-    color: var(--cor-texto);
-    text-decoration: none;
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
-.mega-panel-link:hover {
-    background: #EEF1FF;
-    color: var(--cor-primaria);
-}
-.mega-panel-link.active {
-    color: var(--cor-primaria);
-    font-weight: 600;
 }
 
 /* --- Navegação por abas/collapse no mobile --- */
@@ -727,8 +925,10 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     border-radius: 50px;
     padding: 0.35rem;
     max-width: 720px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    border: 1px solid #E9ECF5;
+    box-shadow: 0 2px 12px rgba(31, 35, 51, 0.07);
     gap: 0.15rem;
+    transition: box-shadow var(--transicao), border-color var(--transicao);
 }
 .busca-combo-campo {
     display: flex;
@@ -755,6 +955,12 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     font-size: 1.05rem;
     flex-shrink: 0;
 }
+/* O campo "o que você precisa" é o principal: fica com toda a sobra de
+   largura; a localização ocupa uma faixa fixa e menor ao lado. */
+.busca-combo-campo-servico {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 .busca-combo-campo-local {
     flex: 0 0 210px;
 }
@@ -767,7 +973,8 @@ details summary.ver-todas-categorias::-webkit-details-marker {
 /* Destaque sutil de foco no componente inteiro, não só no input —
    fica claro que a busca é a ação principal da tela. */
 .busca-combo:focus-within {
-    box-shadow: 0 0 0 3px rgba(var(--cor-primaria-rgb), 0.25), 0 8px 24px rgba(0, 0, 0, 0.14);
+    border-color: rgba(var(--cor-primaria-rgb), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--cor-primaria-rgb), 0.16), 0 6px 18px rgba(31, 35, 51, 0.08);
 }
 
 /* Autocomplete de categorias sob o campo de busca — sugestões reais (vêm
@@ -817,21 +1024,37 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     background: #EEF1FF;
 }
 @media (max-width: 700px) {
+    /* No celular a busca vira uma pilha: serviço ocupa a largura toda,
+       localização logo abaixo e o botão grande e fácil de tocar. */
     .busca-combo {
         flex-direction: column;
         background: transparent;
+        border: none;
         box-shadow: none;
         padding: 0;
-        gap: 0.6rem;
+        gap: 0.5rem;
+        max-width: none;
+    }
+    .busca-combo:focus-within {
+        box-shadow: none;
+        border-color: transparent;
     }
     .busca-combo-campo {
+        width: 100%;
         background: #fff;
+        border: 1px solid #E9ECF5;
         border-radius: 14px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        padding: 0.7rem 1rem;
+        box-shadow: 0 1px 4px rgba(31, 35, 51, 0.05);
+        padding: 0.65rem 0.95rem;
+        min-height: 50px;
+        transition: border-color var(--transicao), box-shadow var(--transicao);
+    }
+    .busca-combo-campo:focus-within {
+        border-color: rgba(var(--cor-primaria-rgb), 0.55);
+        box-shadow: 0 0 0 3px rgba(var(--cor-primaria-rgb), 0.14);
     }
     .busca-combo-campo + .busca-combo-campo {
-        border-left: none;
+        border-left: 1px solid #E9ECF5;
     }
     .busca-combo-campo-local {
         flex-basis: auto;
@@ -839,6 +1062,9 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     .busca-combo-btn {
         width: 100%;
         border-radius: 14px;
+        min-height: 50px;
+        font-size: 1rem;
+        font-weight: 600;
     }
 }
 
@@ -1057,14 +1283,27 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     height: 130px;
     object-fit: cover;
 }
+/* Sem foto: avatar com a inicial, não um retângulo cinza vazio. */
 .card-prof-destaque-foto-vazia {
     width: 100%;
-    height: 130px;
+    height: 104px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #EEF0F7;
-    font-size: 1.8rem;
+    background: linear-gradient(135deg, #EEF1FF, #DCE7FF);
+    color: var(--cor-primaria-escura);
+    font-size: 2.2rem;
+    font-weight: 600;
+}
+
+/* Grade de "Profissionais perto de você": os cards ficam com largura
+   confortável e centralizados — com 1 ou 2 resultados não sobra um card
+   pequeno perdido num canto de uma faixa vazia. */
+.destaques-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 260px));
+    justify-content: center;
+    gap: 0.85rem;
 }
 .card-prof-destaque-body {
     padding: 1rem;
@@ -1117,4 +1356,419 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+
+/* =====================================================================
+   REFINAMENTO DE UX/UI — layout, CTAs, menu mobile, hero e perfil
+   ===================================================================== */
+
+/* --- Container central: largura máxima confortável no desktop --------- */
+.container.container-app {
+    max-width: 1240px;
+}
+.pagina {
+    padding-top: 1.15rem;
+}
+@media (min-width: 768px) {
+    .pagina {
+        padding-top: 1.75rem;
+    }
+}
+
+/* --- CTAs padronizados ----------------------------------------------
+   Só três estilos em todo o site:
+     .btn-primary   -> ação principal de formulário (Buscar, Enviar)
+     .btn-whats     -> chamar no WhatsApp
+     .btn-secundario-> ação secundária (Ver perfil, voltar, alternativas)  */
+.btn-secundario {
+    --bs-btn-color: var(--cor-primaria-escura);
+    --bs-btn-bg: #fff;
+    --bs-btn-border-color: #D7DDFF;
+    --bs-btn-hover-color: var(--cor-primaria-escura);
+    --bs-btn-hover-bg: #EEF1FF;
+    --bs-btn-hover-border-color: var(--cor-primaria);
+    --bs-btn-active-color: var(--cor-primaria-escura);
+    --bs-btn-active-bg: #DCE2FF;
+    --bs-btn-active-border-color: var(--cor-primaria);
+    --bs-btn-focus-shadow-rgb: var(--cor-primaria-rgb);
+    font-weight: 500;
+}
+.btn-whats {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--cor-sucesso);
+    --bs-btn-border-color: var(--cor-sucesso);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #13873E;
+    --bs-btn-hover-border-color: #13873E;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0F6F33;
+    --bs-btn-active-border-color: #0F6F33;
+    --bs-btn-focus-shadow-rgb: 22, 163, 74;
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+.btn-whats:active {
+    box-shadow: 0 1px 4px rgba(22, 163, 74, 0.28);
+}
+
+/* Link-ação: texto clicável discreto (voltar, usar minha localização) */
+.link-acao {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    padding: 0.25rem 0;
+    color: var(--cor-primaria);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+.link-acao:hover {
+    color: var(--cor-primaria-escura);
+    text-decoration: underline;
+}
+.link-acao:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* --- Foco visível: navegação por teclado em tudo que é clicável ------ */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+.cat-chip:focus-visible,
+.menu-lateral-item:focus-visible,
+.btn-chip:focus-visible {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: 2px;
+}
+
+/* --- Menu lateral do mobile ----------------------------------------- */
+.menu-lateral {
+    /* O bootstrap define a largura em .offcanvas.offcanvas-end (mais
+       específico que uma classe só), então ajustamos pela variável dele —
+       deixa um pedaço da página à mostra pra fechar tocando fora. */
+    --bs-offcanvas-width: min(85vw, 320px);
+}
+.menu-lateral .offcanvas-header {
+    border-bottom: 1px solid #EEF0F7;
+}
+.menu-lateral-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.menu-lateral-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 46px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    color: var(--cor-texto);
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.menu-lateral-item:visited {
+    color: var(--cor-texto);
+}
+.menu-lateral-item:hover {
+    background: #EEF1FF;
+    color: var(--cor-primaria-escura);
+}
+.menu-lateral-item > span {
+    width: 1.4em;
+    font-size: 1.05rem;
+    text-align: center;
+}
+.menu-lateral-item-sair,
+.menu-lateral-item-sair:visited {
+    color: #B42318;
+}
+.menu-lateral-item-sair:hover {
+    background: #FEF3F2;
+    color: #912018;
+}
+.menu-lateral-divisor {
+    margin: 0.5rem 0;
+    border-color: #E3E6EF;
+}
+
+/* --- Hero da busca (catálogo) --------------------------------------- */
+.hero-busca {
+    margin-bottom: 1.1rem;
+}
+.hero-busca-titulo {
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 0 0 0.85rem;
+}
+@media (min-width: 768px) {
+    .hero-busca-titulo {
+        font-size: 1.75rem;
+        margin-bottom: 1.1rem;
+    }
+}
+
+/* Linha discreta de localização abaixo da busca */
+.busca-local-linha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1.25rem;
+    margin-top: 0.55rem;
+}
+.busca-local-linha .cidades-outras[open] {
+    flex-basis: 100%;
+    margin-top: 0.35rem;
+}
+.busca-local-status {
+    font-size: 0.8rem;
+    color: var(--cor-texto-suave);
+    margin: 0.45rem 0 0;
+}
+.busca-local-status:empty {
+    display: none;
+}
+
+/* --- Hero da home de visitante: menos altura no celular -------------- */
+.hero-claro-titulo {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 0.55rem;
+}
+.hero-claro-lead {
+    color: var(--cor-texto-suave);
+    font-size: 0.95rem;
+    margin: 0 0 1rem;
+}
+.hero-claro-pro {
+    margin: 1rem 0 0;
+}
+.cats-rapidas-hero {
+    margin-top: 0.9rem;
+    margin-bottom: 0;
+}
+@media (min-width: 768px) {
+    .hero-claro-titulo {
+        font-size: 2.4rem;
+        margin-bottom: 0.85rem;
+    }
+    .hero-claro-lead {
+        font-size: 1.08rem;
+        margin-bottom: 1.4rem;
+    }
+}
+@media (min-width: 992px) {
+    .hero-claro-titulo {
+        font-size: 2.9rem;
+    }
+}
+@media (max-width: 767px) {
+    .hero-claro {
+        padding: 1.5rem 1.1rem;
+    }
+}
+
+/* --- Perfil público: hierarquia foto > nome > categoria > local > nota */
+/* O perfil é uma página de leitura: uma coluna central de largura
+   confortável lê melhor do que faixas de 1240px com pouco conteúdo. */
+.perfil-barra-topo,
+.perfil-topo,
+.perfil-secao {
+    max-width: 920px;
+    margin-inline: auto;
+}
+.perfil-barra-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.perfil-topo {
+    display: grid;
+    gap: 1rem;
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.15rem;
+    margin-bottom: 1rem;
+}
+@media (min-width: 992px) {
+    .perfil-topo {
+        grid-template-columns: minmax(0, 1fr) 300px;
+        align-items: center;
+        padding: 1.75rem;
+    }
+}
+.perfil-topo-identidade {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+.perfil-foto {
+    flex: 0 0 92px;
+    width: 92px;
+    height: 92px;
+    border-radius: 20px;
+    object-fit: cover;
+    background: #EEF0F7;
+}
+.perfil-foto-vazia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.3rem;
+    font-weight: 600;
+    color: var(--cor-primaria-escura);
+    background: linear-gradient(135deg, #EEF1FF, #DCE7FF);
+}
+@media (min-width: 768px) {
+    .perfil-foto {
+        flex-basis: 120px;
+        width: 120px;
+        height: 120px;
+    }
+}
+.perfil-topo-dados {
+    min-width: 0;
+}
+.perfil-nome {
+    font-size: 1.3rem;
+    line-height: 1.2;
+    margin: 0 0 0.3rem;
+    overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+    .perfil-nome {
+        font-size: 1.6rem;
+    }
+}
+.perfil-categoria {
+    font-size: 0.92rem;
+    font-weight: 500;
+    margin: 0 0 0.2rem;
+}
+.perfil-local {
+    font-size: 0.85rem;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.2rem;
+    overflow-wrap: anywhere;
+}
+.perfil-nota {
+    font-size: 0.88rem;
+    margin: 0;
+}
+.perfil-nota-total,
+.perfil-sem-nota {
+    color: var(--cor-texto-suave);
+}
+.perfil-topo-acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.perfil-acoes-aviso {
+    font-size: 0.78rem;
+    color: var(--cor-texto-suave);
+    margin: 0;
+}
+/* No celular a barra fixa lá embaixo já cumpre o papel do botão de
+   WhatsApp — não repete a mesma ação duas vezes na mesma tela. */
+@media (max-width: 991.98px) {
+    .perfil-acao-whats {
+        display: none !important;
+    }
+}
+
+.perfil-secao {
+    background: #fff;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.1rem 1.2rem;
+    margin-bottom: 1rem;
+}
+.perfil-secao-titulo {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.6rem;
+}
+.perfil-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.avaliacoes-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.avaliacao-card {
+    background: #FBFBFE;
+    border: 1px solid #EEF0F7;
+    box-shadow: none;
+    padding: 0.8rem 1rem;
+}
+.avaliacao-estrelas {
+    font-size: 0.95rem;
+}
+.avaliacao-cheias {
+    color: #F5B301;
+}
+.avaliacao-vazias {
+    color: #E0E0E0;
+}
+.avaliacao-autor {
+    color: var(--cor-texto-suave);
+    font-size: 0.82rem;
+    margin-left: 0.35rem;
+}
+.recomendacao-card {
+    border-radius: var(--raio-pequeno);
+    padding: 1.1rem;
+    margin-top: 1rem;
+}
+
+/* Barra fixa de WhatsApp: acompanha a largura do conteúdo no tablet */
+.whatsapp-sticky-bar > .btn {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* --- Telas bem estreitas (320px) ------------------------------------ */
+@media (max-width: 359.98px) {
+    .card-prof {
+        grid-template-columns: 56px minmax(0, 1fr);
+        padding: 0.75rem;
+    }
+    .card-prof-foto {
+        width: 56px;
+        height: 56px;
+    }
+    .cat-chip {
+        width: 72px;
+        min-height: 74px;
+    }
+    .card-prof-acoes .btn {
+        font-size: 0.8rem;
+        padding-inline: 0.4rem;
+    }
 }

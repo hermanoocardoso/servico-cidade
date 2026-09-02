@@ -27,102 +27,164 @@
 }
 </script>
 
-<div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
-    <a href="/" class="btn btn-link ps-0">&larr; Voltar ao catálogo</a>
+<div class="perfil-barra-topo">
+    <a href="/" class="link-acao">&larr; Voltar ao catálogo</a>
     {% if eh_admin_usuario %}
-        <a href="/admin/profissional/{{ perfil.id }}/editar" class="btn btn-outline-primary btn-sm">✏️ Editar como admin</a>
+        <a href="/admin/profissional/{{ perfil.id }}/editar" class="btn btn-secundario btn-sm">✏️ Editar como admin</a>
     {% endif %}
 </div>
 
-<div class="perfil-publico-card mb-4">
-    <div class="row g-4">
-        <div class="col-md-4 text-center">
-            {% if perfil.foto_url %}
-                <img src="{{ perfil.foto_url }}" class="foto-perfil-publico shadow-sm mb-3" alt="{{ perfil.usuario.nome }}">
-            {% else %}
-                <div class="foto-perfil-publico sem-foto d-flex align-items-center justify-content-center mb-3">
-                    <span>📷 Sem foto</span>
-                </div>
-            {% endif %}
+{# ---------------------------------------------------------------
+   Topo: foto -> nome -> categoria -> localização -> avaliação.
+   É a ordem em que a pessoa decide se vale abrir a conversa.
+   --------------------------------------------------------------- #}
+<header class="perfil-topo">
+    <div class="perfil-topo-identidade">
+        {% if perfil.foto_url %}
+            <img src="{{ perfil.foto_url }}" class="perfil-foto" alt="{{ perfil.usuario.nome }}" decoding="async">
+        {% else %}
+            <div class="perfil-foto perfil-foto-vazia" aria-hidden="true">{{ perfil.usuario.nome.strip()[0] | upper }}</div>
+        {% endif %}
 
-            {% if usuario %}
-            <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
-               href="https://wa.me/{{ perfil.whatsapp_numero }}"
-               target="_blank" rel="noopener">
-               {{ whatsapp_icon(18) }}
-               Chamar no WhatsApp
-            </a>
-            <a class="btn btn-outline-secondary w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
-            {% else %}
-            <a class="btn btn-success w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
-               href="/comecar?tipo=cliente">
-               {{ whatsapp_icon(18) }}
-               Entrar para chamar no WhatsApp
-            </a>
-            <p class="text-muted small mb-0">Criar uma conta é grátis e leva menos de um minuto.</p>
-            {% endif %}
-        </div>
+        <div class="perfil-topo-dados">
+            <h1 class="perfil-nome">
+                {{ perfil.usuario.nome }}
+                {% if perfil.criado_via_indicacao %}<span class="selo selo-indicado">Indicado</span>{% endif %}
+            </h1>
 
-        <div class="col-md-8">
-            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
-                <h1 class="h3 mb-0">
-                    {{ perfil.usuario.nome }}
-                    {% if perfil.criado_via_indicacao %}<span class="badge bg-warning text-dark">Indicado</span>{% endif %}
-                </h1>
-                {% if perfil.total_avaliacoes > 0 %}
-                    <span class="badge-avaliacao">⭐ {{ perfil.nota_media }} <span class="text-muted fw-normal">({{ perfil.total_avaliacoes }})</span></span>
+            {% if (perfil.eh_medico and perfil.especialidade_medica) or categoria_principal %}
+            <p class="perfil-categoria">
+                {% if perfil.eh_medico and perfil.especialidade_medica %}
+                    🩺 {{ perfil.especialidade_medica }}
                 {% else %}
-                    <span class="badge-avaliacao badge-avaliacao-novo">Novo no catálogo</span>
-                {% endif %}
-            </div>
-
-            {% if perfil.eh_medico %}
-            <div class="p-3 mb-3 info-medica">
-                {% if perfil.especialidade_medica %}
-                    <p class="fs-5 mb-1"><strong>🩺 {{ perfil.especialidade_medica }}</strong></p>
-                {% endif %}
-                {% if perfil.crm %}
-                    <p class="text-muted small mb-2">{{ perfil.crm }}</p>
-                {% endif %}
-                {% if perfil.atende_convenio == True %}
-                    <p class="mb-0">
-                        <span class="badge bg-success">✅ Atende por convênio</span>
-                        {% if perfil.convenios_aceitos %}
-                            <span class="text-muted small ms-1">{{ perfil.convenios_aceitos }}</span>
-                        {% endif %}
-                    </p>
-                {% elif perfil.atende_convenio == False %}
-                    <p class="mb-0"><span class="badge bg-secondary">💳 Atendimento particular (sem convênio)</span></p>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <p class="mb-2">
-                {% for cat in perfil.categorias %}
-                    <span class="badge bg-secondary">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
-                {% endfor %}
-                {% if perfil.atende_domicilio %}
-                    <span class="badge bg-info text-dark">🏠 Atende em domicílio</span>
+                    {{ categoria_emoji(categoria_principal) }} {{ categoria_principal }}
                 {% endif %}
             </p>
-            <p class="text-muted mb-3">📍 {% if perfil.bairro and perfil.bairro.strip().lower() != (perfil.cidade or '').strip().lower() %}{{ perfil.bairro }}, {% endif %}{{ perfil.cidade or '' }}</p>
-
-            {% if perfil.valor_mao_de_obra %}
-                <p class="mb-2"><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
             {% endif %}
 
-            {% if perfil.descricao %}
-                <h2 class="h6 fw-semibold mt-3 mb-1">Sobre</h2>
-                <p class="mb-0">{{ perfil.descricao }}</p>
+            <p class="perfil-local">📍 {% if perfil.bairro and perfil.bairro.strip().lower() != (perfil.cidade or '').strip().lower() %}{{ perfil.bairro }}, {% endif %}{{ perfil.cidade or '' }}</p>
+
+            <p class="perfil-nota">
+                {% if perfil.total_avaliacoes > 0 %}
+                    <span aria-hidden="true">⭐</span>
+                    <strong>{{ perfil.nota_media | nota_br }}</strong>
+                    <span class="perfil-nota-total">· {{ texto_avaliacoes(perfil.total_avaliacoes) }}</span>
+                {% else %}
+                    <span class="perfil-sem-nota">Ainda sem avaliações</span>
+                {% endif %}
+            </p>
+
+            {# Status só aparece quando existir esse dado de verdade -- hoje
+               o cadastro ainda não tem disponibilidade (ver models.py). #}
+            {% if perfil.disponibilidade %}
+                <p class="card-prof-status status-{{ perfil.disponibilidade }}">
+                    {% if perfil.disponibilidade == "agora" %}🟢 Disponível agora
+                    {% elif perfil.disponibilidade == "hoje" %}🟡 Disponível hoje
+                    {% else %}⚪ Indisponível{% endif %}
+                </p>
             {% endif %}
         </div>
     </div>
-</div>
 
-{% if usuario and pode_avaliar %}
-<div class="card mb-4 recomendacao-card reveal">
-    <div class="card-body">
-        <h4 class="mb-1">⭐ Deixe aqui sua recomendação</h4>
+    {# Ação principal. No celular ela também vira a barra fixa lá embaixo. #}
+    <div class="perfil-topo-acoes">
+        {% if usuario %}
+            {% if perfil.tem_whatsapp %}
+            <a class="btn btn-whats btn-lg w-100 perfil-acao-whats"
+               href="https://wa.me/{{ perfil.whatsapp_numero }}" target="_blank" rel="noopener">
+                {{ whatsapp_icon(18) }} Chamar no WhatsApp
+            </a>
+            {% endif %}
+            {% if perfil.usuario.telefone %}
+            <a class="btn btn-secundario w-100" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
+            {% endif %}
+        {% else %}
+            <a class="btn btn-whats btn-lg w-100 perfil-acao-whats" href="/comecar?tipo=cliente">
+                {{ whatsapp_icon(18) }} Entrar para chamar no WhatsApp
+            </a>
+            <p class="perfil-acoes-aviso">Criar uma conta é grátis e leva menos de um minuto.</p>
+        {% endif %}
+    </div>
+</header>
+
+{% if perfil.eh_medico %}
+<section class="perfil-secao info-medica">
+    {% if perfil.especialidade_medica %}
+        <p class="fs-5 mb-1"><strong>🩺 {{ perfil.especialidade_medica }}</strong></p>
+    {% endif %}
+    {% if perfil.crm %}
+        <p class="text-muted small mb-2">{{ perfil.crm }}</p>
+    {% endif %}
+    {% if perfil.atende_convenio == True %}
+        <p class="mb-0">
+            <span class="badge bg-success">✅ Atende por convênio</span>
+            {% if perfil.convenios_aceitos %}
+                <span class="text-muted small ms-1">{{ perfil.convenios_aceitos }}</span>
+            {% endif %}
+        </p>
+    {% elif perfil.atende_convenio == False %}
+        <p class="mb-0"><span class="badge bg-secondary">💳 Atendimento particular (sem convênio)</span></p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if perfil.descricao %}
+<section class="perfil-secao">
+    <h2 class="perfil-secao-titulo">Sobre</h2>
+    <p class="mb-0">{{ perfil.descricao }}</p>
+</section>
+{% endif %}
+
+<section class="perfil-secao">
+    <h2 class="perfil-secao-titulo">Serviços</h2>
+    <p class="perfil-tags mb-0">
+        {% for cat in perfil.categorias %}
+            <span class="badge bg-secondary">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
+        {% endfor %}
+        {% if perfil.atende_domicilio %}
+            <span class="badge bg-info text-dark">🏠 Atende em domicílio</span>
+        {% endif %}
+    </p>
+    {% if perfil.valor_mao_de_obra %}
+        <p class="mb-0 mt-2"><strong>Valor:</strong> {{ perfil.valor_mao_de_obra }}</p>
+    {% endif %}
+</section>
+
+{% if perfil.cidade or perfil.bairro or perfil.endereco %}
+<section class="perfil-secao">
+    <h2 class="perfil-secao-titulo">Área de atendimento</h2>
+    <p class="mb-0">
+        📍
+        {%- if perfil.bairro and perfil.bairro.strip().lower() != (perfil.cidade or '').strip().lower() %} {{ perfil.bairro }},{% endif %}
+        {{ perfil.cidade or '' }}
+    </p>
+    {% if perfil.endereco %}<p class="text-muted small mb-0 mt-1">{{ perfil.endereco }}</p>{% endif %}
+</section>
+{% endif %}
+
+<section class="perfil-secao" id="avaliacoes">
+    <h2 class="perfil-secao-titulo">Avaliações</h2>
+
+    {% if avaliacoes %}
+        <div class="avaliacoes-lista">
+        {% for r in avaliacoes %}
+        <article class="avaliacao-card">
+            <p class="avaliacao-estrelas mb-1">
+                <span class="avaliacao-cheias" aria-hidden="true">{{ "★" * r.estrelas }}</span><span class="avaliacao-vazias" aria-hidden="true">{{ "★" * (5 - r.estrelas) }}</span>
+                <span class="visually-hidden">{{ r.estrelas }} de 5 estrelas</span>
+                <span class="avaliacao-autor">— {{ r.cliente.nome }}</span>
+            </p>
+            {% if r.comentario %}<p class="mb-0">{{ r.comentario }}</p>{% endif %}
+        </article>
+        {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted mb-0">Nenhuma avaliação ainda. Seja a primeira pessoa a avaliar.</p>
+    {% endif %}
+
+    {% if usuario and pode_avaliar %}
+    <div class="recomendacao-card">
+        <h3 class="h6 fw-semibold mb-1">⭐ Deixe aqui sua recomendação</h3>
         <p class="text-muted small mb-3">
             Já contratou? Avalie e recomende — sua opinião ajuda outras pessoas a decidir.
         </p>
@@ -131,75 +193,78 @@
             <div class="mb-3">
                 <div class="star-rating">
                     <input type="radio" id="star5" name="estrelas" value="5" {% if nota_atual == 5 %}checked{% endif %}>
-                    <label for="star5" title="Excelente">★</label>
+                    <label for="star5" title="Excelente"><span class="visually-hidden">5 estrelas</span>★</label>
                     <input type="radio" id="star4" name="estrelas" value="4" {% if nota_atual == 4 %}checked{% endif %}>
-                    <label for="star4" title="Bom">★</label>
+                    <label for="star4" title="Bom"><span class="visually-hidden">4 estrelas</span>★</label>
                     <input type="radio" id="star3" name="estrelas" value="3" {% if nota_atual == 3 %}checked{% endif %}>
-                    <label for="star3" title="Regular">★</label>
+                    <label for="star3" title="Regular"><span class="visually-hidden">3 estrelas</span>★</label>
                     <input type="radio" id="star2" name="estrelas" value="2" {% if nota_atual == 2 %}checked{% endif %}>
-                    <label for="star2" title="Ruim">★</label>
+                    <label for="star2" title="Ruim"><span class="visually-hidden">2 estrelas</span>★</label>
                     <input type="radio" id="star1" name="estrelas" value="1" {% if nota_atual == 1 %}checked{% endif %}>
-                    <label for="star1" title="Péssimo">★</label>
+                    <label for="star1" title="Péssimo"><span class="visually-hidden">1 estrela</span>★</label>
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-semibold">Sua recomendação</label>
-                <textarea name="comentario" class="form-control" rows="3"
+                <label class="form-label fw-semibold" for="comentarioAvaliacao">Sua recomendação</label>
+                <textarea name="comentario" id="comentarioAvaliacao" class="form-control" rows="3"
                           placeholder="Conte como foi o atendimento e recomende pra quem está procurando...">{{ minha_avaliacao.comentario if minha_avaliacao else "" }}</textarea>
             </div>
             <p class="text-muted small mb-3">Você está avaliando como <strong>{{ usuario.nome }}</strong> — seu nome aparece junto da recomendação.</p>
-            <button type="submit" class="btn btn-primary btn-lg fw-semibold">{{ "Atualizar recomendação" if minha_avaliacao else "Enviar recomendação" }}</button>
-            {% if minha_avaliacao %}
-            <button type="submit" formaction="/profissional/{{ perfil.id }}/avaliar/excluir"
-                    class="btn btn-outline-danger" onclick="return confirm('Excluir sua avaliação?')">
-                Excluir minha avaliação
-            </button>
-            {% endif %}
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary fw-semibold">{{ "Atualizar recomendação" if minha_avaliacao else "Enviar recomendação" }}</button>
+                {% if minha_avaliacao %}
+                <button type="submit" formaction="/profissional/{{ perfil.id }}/avaliar/excluir"
+                        class="btn btn-outline-danger" onclick="return confirm('Excluir sua avaliação?')">
+                    Excluir minha avaliação
+                </button>
+                {% endif %}
+            </div>
         </form>
     </div>
-</div>
-{% elif not usuario %}
-<div class="card mb-4 recomendacao-card reveal">
-    <div class="card-body text-center">
-        <h4 class="mb-2">⭐ Deixe aqui sua recomendação</h4>
-        <p class="mb-3">Entre ou crie uma conta grátis pra avaliar e recomendar este profissional.</p>
-        <a href="/login" class="btn btn-primary fw-semibold me-2">Entrar</a>
-        <a href="/cadastro?tipo=cliente" class="btn btn-outline-primary fw-semibold">Criar conta grátis</a>
+    {% elif not usuario %}
+    <div class="recomendacao-card text-center">
+        <h3 class="h6 fw-semibold mb-2">⭐ Deixe aqui sua recomendação</h3>
+        <p class="mb-3 small">Entre ou crie uma conta grátis pra avaliar e recomendar este profissional.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a href="/login" class="btn btn-primary fw-semibold">Entrar</a>
+            <a href="/cadastro?tipo=cliente" class="btn btn-secundario fw-semibold">Criar conta grátis</a>
+        </div>
     </div>
-</div>
-{% else %}
-<p class="text-muted small mb-4">Esse é o seu perfil — você não pode avaliar a si mesmo.</p>
+    {% else %}
+    <p class="text-muted small mb-0 mt-3">Esse é o seu perfil — você não pode avaliar a si mesmo.</p>
+    {% endif %}
+</section>
+
+{% if usuario %}
+<section class="perfil-secao">
+    <h2 class="perfil-secao-titulo">Contato</h2>
+    <div class="d-flex flex-wrap gap-2">
+        {% if perfil.tem_whatsapp %}
+        <a class="btn btn-whats" href="https://wa.me/{{ perfil.whatsapp_numero }}" target="_blank" rel="noopener">
+            {{ whatsapp_icon(18) }} Chamar no WhatsApp
+        </a>
+        {% endif %}
+        {% if perfil.usuario.telefone %}
+        <a class="btn btn-secundario" href="tel:{{ perfil.usuario.telefone }}">📞 {{ perfil.usuario.telefone }}</a>
+        {% endif %}
+    </div>
+</section>
 {% endif %}
 
-<h2 class="h5 fw-semibold mb-3">Recomendações de clientes</h2>
-{% if avaliacoes %}
-    <div class="d-flex flex-column gap-2 mb-3">
-    {% for r in avaliacoes %}
-    <div class="avaliacao-card">
-        <strong class="text-warning">{{ "★" * r.estrelas }}</strong><strong class="text-muted">{{ "★" * (5 - r.estrelas) }}</strong>
-        <span class="text-muted small ms-1">— {{ r.cliente.nome }}</span>
-        {% if r.comentario %}<p class="mb-0 mt-1">{{ r.comentario }}</p>{% endif %}
-    </div>
-    {% endfor %}
-    </div>
-{% else %}
-    <p class="text-muted">Nenhuma recomendação ainda. Seja o primeiro a avaliar!</p>
-{% endif %}
-
-<div class="whatsapp-sticky-spacer d-md-none"></div>
-<div class="whatsapp-sticky-bar d-md-none">
+{# Barra fixa no mobile: só existe se houver WhatsApp de verdade cadastrado. #}
+{% if perfil.tem_whatsapp or not usuario %}
+<div class="whatsapp-sticky-spacer d-lg-none"></div>
+<div class="whatsapp-sticky-bar d-lg-none">
     {% if usuario %}
     <a href="https://wa.me/{{ perfil.whatsapp_numero }}" target="_blank" rel="noopener"
-       class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold">
-        {{ whatsapp_icon(20) }}
-        Chamar no WhatsApp
+       class="btn btn-whats btn-lg w-100 fw-semibold">
+        {{ whatsapp_icon(20) }} Chamar no WhatsApp
     </a>
     {% else %}
-    <a href="/comecar?tipo=cliente"
-       class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold">
-        {{ whatsapp_icon(20) }}
-        Entrar para chamar no WhatsApp
+    <a href="/comecar?tipo=cliente" class="btn btn-whats btn-lg w-100 fw-semibold">
+        {{ whatsapp_icon(20) }} Entrar para chamar no WhatsApp
     </a>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

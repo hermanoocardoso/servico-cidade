@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Esqueci minha senha{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="landing-role-icon mx-auto mb-3">🔑</div>
+        <h3 class="mb-4 text-center">Esqueci minha senha</h3>
+
+        {% if enviado %}
+        <div class="alert alert-success">
+            Se esse e-mail tiver uma conta com senha cadastrada, enviamos um link pra redefinir.
+            Confira sua caixa de entrada (e o spam).
+        </div>
+        <p class="text-center"><a href="/login">Voltar para o login</a></p>
+        {% else %}
+        {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+        {% endif %}
+
+        <p class="text-muted small">Digite o e-mail da sua conta -- vamos mandar um link pra você criar uma senha nova.</p>
+
+        <form method="post" action="/esqueci-senha">
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" class="form-control" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Enviar link</button>
+        </form>
+        <p class="text-center mt-3 text-muted"><a href="/login">Voltar para o login</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

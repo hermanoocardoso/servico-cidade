@@ -78,6 +78,7 @@
                     {% endif %}
                 </td>
                 <td class="text-nowrap">
+                    <a href="/admin/usuario/{{ p.usuario.id }}/editar" class="btn btn-outline-primary btn-sm">Editar conta</a>
                     <form method="post" action="/admin/aprovar/{{ p.id }}" class="d-inline">
                         <button class="btn btn-success btn-sm">Aprovar</button>
                     </form>
@@ -108,6 +109,7 @@
                 <td>
                     <a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a>
                     {% if p.criado_via_indicacao %}<span class="badge bg-warning text-dark">Indicado</span>{% endif %}
+                    {% if p.usuario.email in emails_admin %}<span class="badge bg-secondary">admin do painel</span>{% endif %}
                 </td>
                 <td>{{ p.cidade }}</td>
                 <td>⭐ {{ p.nota_media }} ({{ p.total_avaliacoes }})</td>
@@ -116,11 +118,12 @@
                     {% if not p.usuario.ativo %}<br><span class="badge bg-danger">login bloqueado</span>{% endif %}
                 </td>
                 <td class="text-nowrap">
-                    <a href="/admin/profissional/{{ p.id }}/editar" class="btn btn-outline-primary btn-sm">Editar</a>
+                    <a href="/admin/profissional/{{ p.id }}/editar" class="btn btn-outline-primary btn-sm">Editar perfil</a>
+                    <a href="/admin/usuario/{{ p.usuario.id }}/editar" class="btn btn-outline-primary btn-sm">Editar conta</a>
                     <form method="post" action="/admin/pausar/{{ p.id }}" class="d-inline">
                         <button class="btn btn-outline-secondary btn-sm">{{ "Pausar" if p.ativo else "Reativar" }}</button>
                     </form>
-                    {% if p.usuario.email != usuario.email %}
+                    {% if p.usuario.email not in emails_admin %}
                     <form method="post" action="/admin/usuario/{{ p.usuario.id }}/bloquear" class="d-inline"
                           onsubmit="return confirm('{{ 'Bloquear' if p.usuario.ativo else 'Desbloquear' }} o login desse profissional?');">
                         <button class="btn btn-outline-danger btn-sm">{{ "Bloquear login" if p.usuario.ativo else "Desbloquear login" }}</button>
@@ -146,12 +149,17 @@
         <tbody>
         {% for c in clientes %}
             <tr>
-                <td>{{ c.nome }}</td>
+                <td>
+                    {{ c.nome }}
+                    {% if c.email in emails_admin %}<span class="badge bg-secondary">admin do painel</span>{% endif %}
+                </td>
                 <td>{{ c.email }}</td>
                 <td>{{ c.telefone }}</td>
                 <td>{{ c.criado_em.strftime("%d/%m/%Y") if c.criado_em else "-" }}</td>
                 <td>{{ "Ativo" if c.ativo else "Bloqueado" }}</td>
                 <td class="text-nowrap">
+                    <a href="/admin/usuario/{{ c.id }}/editar" class="btn btn-outline-primary btn-sm">Editar</a>
+                    {% if c.email not in emails_admin %}
                     <form method="post" action="/admin/usuario/{{ c.id }}/bloquear" class="d-inline"
                           onsubmit="return confirm('{{ 'Bloquear' if c.ativo else 'Desbloquear' }} o login desse cliente?');">
                         <button class="btn btn-outline-secondary btn-sm">{{ "Bloquear" if c.ativo else "Desbloquear" }}</button>
@@ -160,6 +168,7 @@
                           onsubmit="return confirm('Excluir esse cliente e todas as avaliações dele? Não dá pra desfazer.');">
                         <button class="btn btn-outline-danger btn-sm">Excluir</button>
                     </form>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}

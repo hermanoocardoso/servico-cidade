@@ -18,8 +18,8 @@
 <div class="hero-claro mb-5">
     <div class="row align-items-center g-4 g-lg-5">
         <div class="col-lg-7">
-            <h1 class="display-5 fw-bold mb-3">Encontre quem pode <span class="text-primary">resolver</span>.</h1>
-            <p class="lead text-muted mb-4">Profissionais da sua região para serviços do dia a dia. Encontre, compare e fale direto com quem entende.</p>
+            <h1 class="hero-claro-titulo">Encontre quem pode <span class="text-primary">resolver</span>.</h1>
+            <p class="hero-claro-lead">Profissionais da sua região para serviços do dia a dia. Encontre, compare e fale direto com quem entende.</p>
 
             <div class="busca-combo-wrap mb-2">
                 <form action="/" method="get" class="busca-combo busca-combo-clara" autocomplete="off">
@@ -41,23 +41,39 @@
                 </div>
             </div>
 
-            <button type="button" id="btnLocalizacaoHero" class="btn btn-link btn-sm text-decoration-none px-0 mb-1">
-                📍 Usar minha localização
-            </button>
-            {% if cidades_destaque %}
-            <details class="cidades-outras">
-                <summary>ou escolher cidade</summary>
-                <div class="cidades-outras-lista">
-                    {% for c in cidades_destaque %}
-                        <a href="/?cidade={{ c | urlencode }}" class="btn-chip">{{ c }}</a>
-                    {% endfor %}
-                </div>
-            </details>
-            {% endif %}
-            <div id="statusLocalizacaoHero" class="small text-muted mt-2 mb-2"></div>
+            <div class="busca-local-linha">
+                <button type="button" id="btnLocalizacaoHero" class="link-acao">📍 Usar minha localização</button>
+                {% if cidades_destaque %}
+                <details class="cidades-outras">
+                    <summary>Trocar cidade</summary>
+                    <div class="cidades-outras-lista">
+                        {% for c in cidades_destaque %}
+                            <a href="/?cidade={{ c | urlencode }}" class="btn-chip">{{ c }}</a>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+            </div>
+            <p id="statusLocalizacaoHero" class="busca-local-status" role="status"></p>
 
-            <p class="mb-0 mt-2">
-                <a href="/comecar?tipo=profissional" class="btn btn-outline-primary btn-sm">
+            {# Categorias populares logo abaixo da busca: no celular dá pra
+               escolher um serviço sem precisar rolar a tela. As ~50 categorias
+               continuam todas acessíveis em "Ver todas". #}
+            <nav class="cats-rapidas cats-rapidas-hero" aria-label="Categorias populares">
+                {% for c in categorias_populares %}
+                <a href="/?categoria={{ c.id }}" class="cat-chip">
+                    <span class="cat-chip-icone" aria-hidden="true">{{ c.emoji }}</span>
+                    <span class="cat-chip-rotulo">{{ c.rotulo }}</span>
+                </a>
+                {% endfor %}
+                <a href="/?explorar=1" class="cat-chip cat-chip-todas">
+                    <span class="cat-chip-icone" aria-hidden="true">＋</span>
+                    <span class="cat-chip-rotulo">Ver todas</span>
+                </a>
+            </nav>
+
+            <p class="hero-claro-pro">
+                <a href="/comecar?tipo=profissional" class="btn btn-secundario btn-sm">
                     Sou profissional — quero oferecer meus serviços
                 </a>
             </p>
@@ -66,7 +82,7 @@
         {% if profissional_hero %}
         <div class="col-lg-5">
             <div class="hero-visual-wrap">
-                <img src="{{ profissional_hero.foto_url }}" class="hero-foto-profissional" alt="{{ profissional_hero.usuario.nome }}">
+                <img src="{{ profissional_hero.foto_url }}" class="hero-foto-profissional" alt="{{ profissional_hero.usuario.nome }}" decoding="async" fetchpriority="high">
                 <div class="hero-review-card">
                     <strong>{{ profissional_hero.usuario.nome.split(" ")[0] }}</strong>
                     <div class="text-muted small">
@@ -74,9 +90,9 @@
                         no SocorreAqui
                     </div>
                     {% if profissional_hero.total_avaliacoes > 0 %}
-                        <div class="small mt-1">⭐ {{ profissional_hero.nota_media }} <span class="text-muted">({{ profissional_hero.total_avaliacoes }})</span></div>
+                        <div class="small mt-1">⭐ <strong>{{ profissional_hero.nota_media | nota_br }}</strong> <span class="text-muted">· {{ texto_avaliacoes(profissional_hero.total_avaliacoes) }}</span></div>
                     {% else %}
-                        <div class="small text-muted mt-1">Novo no catálogo</div>
+                        <div class="small text-muted mt-1">Ainda sem avaliações</div>
                     {% endif %}
                 </div>
             </div>
@@ -212,8 +228,8 @@
 })();
 </script>
 
-<h2 id="categorias" class="h5 fw-semibold text-center mb-3 reveal">Serviços populares</h2>
-<div class="row row-cols-2 row-cols-md-5 g-3 mb-2 reveal">
+<h2 id="categorias" class="h5 fw-semibold text-center mb-3 reveal d-none d-lg-block">Serviços populares</h2>
+<div class="row row-cols-md-5 g-3 mb-2 reveal d-none d-lg-flex">
     {% for c in categorias_destaque[:5] %}
     <div class="col">
         <a href="/?categoria={{ c.id }}" class="categoria-destaque-card">
@@ -226,7 +242,7 @@
     </div>
     {% endfor %}
 </div>
-<details class="mb-5 text-center reveal">
+<details class="mb-5 text-center reveal d-none d-lg-block">
     <summary class="ver-todas-categorias">+ Ver todas as categorias</summary>
     <div class="row row-cols-2 row-cols-md-5 g-3 mt-1 text-start">
         {% for c in categorias_destaque[5:] %}
@@ -252,14 +268,13 @@
 {% if profissionais_destaque %}
 <h2 class="h5 fw-semibold text-center mb-1 reveal">Profissionais perto de você</h2>
 <p class="text-muted text-center mb-4 reveal">Já estão no catálogo, prontos pra ajudar.</p>
-<div class="row row-cols-2 row-cols-md-4 g-3 mb-5 reveal">
+<div class="destaques-grade mb-5 reveal">
     {% for p in profissionais_destaque %}
-    <div class="col">
         <div class="card-prof-destaque">
             {% if p.foto_url %}
-                <img src="{{ p.foto_url }}" class="card-prof-destaque-foto" alt="{{ p.usuario.nome }}">
+                <img src="{{ p.foto_url }}" class="card-prof-destaque-foto" alt="{{ p.usuario.nome }}" loading="lazy" decoding="async">
             {% else %}
-                <div class="card-prof-destaque-foto-vazia">📷</div>
+                <div class="card-prof-destaque-foto-vazia">{{ p.usuario.nome.strip()[0] | upper }}</div>
             {% endif %}
             <div class="card-prof-destaque-body">
                 <h6 class="mb-1">
@@ -275,14 +290,13 @@
                 {% endif %}
                 <p class="text-muted small mb-1">📍 {{ p.cidade or '' }}</p>
                 {% if p.total_avaliacoes > 0 %}
-                    <p class="small mb-2">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }})</span></p>
+                    <p class="small mb-2">⭐ <strong>{{ p.nota_media | nota_br }}</strong> <span class="text-muted">· {{ texto_avaliacoes(p.total_avaliacoes) }}</span></p>
                 {% else %}
-                    <p class="small text-muted mb-2">Novo no catálogo</p>
+                    <p class="small text-muted mb-2">Ainda sem avaliações</p>
                 {% endif %}
-                <a href="/comecar?tipo=cliente&next={{ ('/profissional/' ~ p.id) | urlencode }}" class="btn btn-outline-primary btn-sm w-100 mt-auto">Ver perfil</a>
+                <a href="/comecar?tipo=cliente&next={{ ('/profissional/' ~ p.id) | urlencode }}" class="btn btn-secundario btn-sm w-100 mt-auto">Ver perfil</a>
             </div>
         </div>
-    </div>
     {% endfor %}
 </div>
 {% endif %}

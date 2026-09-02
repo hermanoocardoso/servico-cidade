@@ -1,48 +1,70 @@
 {% extends "base.html" %}
 {% block titulo %}{{ titulo_pagina or "SocorreAqui — precisou, encontrou. 🏃🔧⚡️" }}{% endblock %}
-{% block meta_descricao %}{{ meta_descricao_pagina or "Encontre eletricistas, diaristas, manicures, mecânicos e outros profissionais de confiança perto de você. Cadastro gratuito, contato direto pelo WhatsApp." }}{% endblock %}
+{% block meta_descricao %}{{ meta_descricao_pagina or "Encontre eletricistas, diaristas, manicures, mecânicos e outros profissionais da sua região. Cadastro gratuito, contato direto pelo WhatsApp." }}{% endblock %}
 
 {% macro card_profissional(p) %}
-<div class="card-prof-h">
-    {% if p.foto_url %}
-        <img src="{{ p.foto_url }}" class="card-prof-h-foto" alt="{{ p.usuario.nome }}">
-    {% else %}
-        <div class="card-prof-h-foto card-prof-h-foto-vazia">📷</div>
-    {% endif %}
-    <div class="card-prof-h-info">
-        <h6 class="mb-1">
-            {{ p.usuario.nome }}
-            {% if p.criado_via_indicacao %}<span class="badge bg-warning text-dark">Indicado</span>{% endif %}
-        </h6>
-        <div class="card-prof-h-categorias">
+<article class="card-prof">
+    <a href="/profissional/{{ p.id }}" class="card-prof-foto" tabindex="-1" aria-hidden="true">
+        {% if p.foto_url %}
+            <img src="{{ p.foto_url }}" alt="" loading="lazy" decoding="async">
+        {% else %}
+            {# Avatar padrão: inicial do nome, no lugar de um bloco vazio grande. #}
+            <span class="card-prof-avatar">{{ p.usuario.nome.strip()[0] | upper }}</span>
+        {% endif %}
+    </a>
+
+    <div class="card-prof-info">
+        <h3 class="card-prof-nome">
+            <a href="/profissional/{{ p.id }}">{{ p.usuario.nome }}</a>
+            {% if p.criado_via_indicacao %}<span class="selo selo-indicado">Indicado</span>{% endif %}
+        </h3>
+
+        {% if (p.eh_medico and p.especialidade_medica) or p.categorias %}
+        <p class="card-prof-categoria">
             {% if p.eh_medico and p.especialidade_medica %}
-                <span class="badge bg-info text-dark">🩺 {{ p.especialidade_medica }}</span>
+                🩺 {{ p.especialidade_medica }}
             {% else %}
-                {% for cat in p.categorias[:3] %}
-                    <span class="badge bg-secondary">{{ categoria_emoji(cat.nome) }} {{ cat.nome }}</span>
-                {% endfor %}
+                {{ categoria_emoji(p.categorias[0].nome) }} {{ p.categorias[0].nome }}
+                {% if p.categorias|length > 1 %}<span class="card-prof-mais">+{{ p.categorias|length - 1 }}</span>{% endif %}
             {% endif %}
-        </div>
-        <p class="text-muted small mb-1">📍 {% if p.bairro and p.bairro.strip().lower() != (p.cidade or '').strip().lower() %}{{ p.bairro }}, {% endif %}{{ p.cidade or '' }}</p>
-        {% if p.total_avaliacoes > 0 %}
-            <p class="small mb-0">⭐ {{ p.nota_media }} <span class="text-muted">({{ p.total_avaliacoes }} avaliações)</span></p>
-        {% else %}
-            <p class="small text-muted mb-0">Novo no catálogo — ainda sem avaliações</p>
+        </p>
+        {% endif %}
+
+        <p class="card-prof-local">📍 {% if p.bairro and p.bairro.strip().lower() != (p.cidade or '').strip().lower() %}{{ p.bairro }}, {% endif %}{{ p.cidade or '' }}</p>
+
+        <p class="card-prof-nota">
+            {% if p.total_avaliacoes > 0 %}
+                <span class="card-prof-estrela" aria-hidden="true">⭐</span>
+                <strong>{{ p.nota_media | nota_br }}</strong>
+                <span class="card-prof-nota-total">· {{ texto_avaliacoes(p.total_avaliacoes) }}</span>
+            {% else %}
+                <span class="card-prof-sem-nota">Ainda sem avaliações</span>
+            {% endif %}
+        </p>
+
+        {# Status de disponibilidade: só aparece quando existir esse dado de
+           verdade no cadastro (hoje ainda não existe -- ver models.py). #}
+        {% if p.disponibilidade %}
+            <p class="card-prof-status status-{{ p.disponibilidade }}">
+                {% if p.disponibilidade == "agora" %}🟢 Disponível agora
+                {% elif p.disponibilidade == "hoje" %}🟡 Disponível hoje
+                {% else %}⚪ Indisponível{% endif %}
+            </p>
         {% endif %}
     </div>
-    <div class="card-prof-h-acoes">
-        <a href="/profissional/{{ p.id }}" class="btn btn-outline-primary btn-sm">Ver perfil</a>
+
+    <div class="card-prof-acoes">
+        <a href="/profissional/{{ p.id }}" class="btn btn-secundario btn-sm">Ver perfil</a>
         {% if usuario %}
-        <a href="https://wa.me/{{ p.whatsapp_numero }}" target="_blank" rel="noopener" class="btn btn-success btn-sm d-inline-flex align-items-center justify-content-center gap-1">
-            {{ whatsapp_icon(16) }} WhatsApp
-        </a>
+            {% if p.tem_whatsapp %}
+            <a href="https://wa.me/{{ p.whatsapp_numero }}" target="_blank" rel="noopener"
+               class="btn btn-whats btn-sm">{{ whatsapp_icon(16) }} WhatsApp</a>
+            {% endif %}
         {% else %}
-        <a href="/comecar?tipo=cliente" class="btn btn-success btn-sm d-inline-flex align-items-center justify-content-center gap-1">
-            {{ whatsapp_icon(16) }} Entrar
-        </a>
+        <a href="/comecar?tipo=cliente" class="btn btn-whats btn-sm">{{ whatsapp_icon(16) }} Entrar</a>
         {% endif %}
     </div>
-</div>
+</article>
 {% endmacro %}
 
 {% macro url_ordenar(valor) -%}
@@ -50,46 +72,51 @@
 {%- endmacro %}
 
 {% block conteudo %}
-<h1 class="h4 fw-semibold mb-3">{{ h1_pagina or "Encontre um profissional de confiança" }}</h1>
+<section class="hero-busca">
+    <h1 class="hero-busca-titulo">{{ h1_pagina or "Encontre um profissional de confiança" }}</h1>
 
-<form method="get" action="/" class="busca-combo mb-2" id="formBuscaIndex">
-    <div class="busca-combo-campo">
-        <span class="busca-combo-icone" aria-hidden="true">🔎</span>
-        <label for="inputBuscaIndex" class="visually-hidden">O que você precisa?</label>
-        <input type="text" id="inputBuscaIndex" name="busca" value="{{ filtro_busca }}" placeholder="O que você precisa? Ex: eletricista, encanador, mecânico...">
-    </div>
-    <div class="busca-combo-campo busca-combo-campo-local">
-        <span class="busca-combo-icone" aria-hidden="true">📍</span>
-        <label for="inputCidadeBusca" class="visually-hidden">Sua localização</label>
-        <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" placeholder="Sua localização">
-    </div>
-    <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarIndex">Buscar</button>
-</form>
-<script>
-document.getElementById("formBuscaIndex").addEventListener("submit", function () {
-    var b = document.getElementById("btnBuscarIndex");
-    b.disabled = true;
-    b.textContent = "Procurando...";
-});
-</script>
-
-<div class="d-flex flex-wrap align-items-center gap-3 mb-4 small">
-    <button type="button" id="btnCheckin" class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold">📍 Usar minha localização</button>
-    {% if cidades_destaque %}
-    <details class="cidades-outras">
-        <summary>trocar cidade</summary>
-        <div class="cidades-outras-lista">
-            {% for c in cidades_destaque %}
-                <a href="/?cidade={{ c | urlencode }}" class="btn-chip {% if filtro_cidade == c %}active{% endif %}">{{ c }}</a>
-            {% endfor %}
+    <form method="get" action="/" class="busca-combo" id="formBuscaIndex">
+        <div class="busca-combo-campo busca-combo-campo-servico">
+            <span class="busca-combo-icone" aria-hidden="true">🔎</span>
+            <label for="inputBuscaIndex" class="visually-hidden">O que você precisa?</label>
+            <input type="text" id="inputBuscaIndex" name="busca" value="{{ filtro_busca }}"
+                   placeholder="O que você precisa? Ex: eletricista, encanador...">
         </div>
-    </details>
-    {% endif %}
-</div>
-<div id="checkinStatus" class="text-muted small mb-3"></div>
+        <div class="busca-combo-campo busca-combo-campo-local">
+            <span class="busca-combo-icone" aria-hidden="true">📍</span>
+            <label for="inputCidadeBusca" class="visually-hidden">Sua localização</label>
+            <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" placeholder="Sua localização">
+        </div>
+        <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarIndex">Buscar</button>
+    </form>
+
+    {# Linha discreta de localização, logo abaixo da busca -- ajuda sem
+       competir com o campo principal. #}
+    <div class="busca-local-linha">
+        <button type="button" id="btnCheckin" class="link-acao">📍 Usar minha localização</button>
+        {% if cidades_destaque %}
+        <details class="cidades-outras">
+            <summary>Trocar cidade</summary>
+            <div class="cidades-outras-lista">
+                {% for c in cidades_destaque %}
+                    <a href="/?cidade={{ c | urlencode }}" class="btn-chip {% if filtro_cidade == c %}active{% endif %}">{{ c }}</a>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+    </div>
+    <p id="checkinStatus" class="busca-local-status" role="status"></p>
+</section>
 
 <script>
 (function () {
+    var form = document.getElementById("formBuscaIndex");
+    form.addEventListener("submit", function () {
+        var b = document.getElementById("btnBuscarIndex");
+        b.disabled = true;
+        b.textContent = "Procurando...";
+    });
+
     var btn = document.getElementById("btnCheckin");
     var status = document.getElementById("checkinStatus");
     var inputCidade = document.getElementById("inputCidadeBusca");
@@ -163,37 +190,82 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
 })();
 </script>
 
-<div class="mega-menu mb-2">
-    <a href="/?explorar=1" class="mega-item {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
-        <span class="category-icon">🔎</span>
-        <span class="category-label">Todas</span>
+{# ------------------------------------------------------------------
+   Categorias populares: só as mais procuradas ficam à vista. NENHUMA
+   categoria foi removida -- as demais estão todas no painel "Ver todas",
+   agrupadas exatamente como antes.
+   ------------------------------------------------------------------ #}
+<nav class="cats-rapidas" aria-label="Categorias populares">
+    {% for c in categorias_populares %}
+    <a href="/?categoria={{ c.id }}" class="cat-chip {% if filtro_categoria == c.id %}active{% endif %}">
+        <span class="cat-chip-icone" aria-hidden="true">{{ c.emoji }}</span>
+        <span class="cat-chip-rotulo">{{ c.rotulo }}</span>
+    </a>
+    {% endfor %}
+    <a href="#todasCategorias" class="cat-chip cat-chip-todas" id="btnVerTodasCats"
+       aria-controls="todasCategorias" aria-expanded="true">
+        <span class="cat-chip-icone" aria-hidden="true">＋</span>
+        <span class="cat-chip-rotulo">Ver todas</span>
+    </a>
+</nav>
+
+<div class="cats-todas" id="todasCategorias">
+    <a href="/?explorar=1" class="cats-todas-atalho {% if not filtro_categoria and not filtro_grupo %}active{% endif %}">
+        🔎 Ver todos os profissionais
     </a>
     {% for grupo_nome, cats in categorias_por_grupo %}
-    <div class="mega-item-wrap">
-        <a href="/?grupo={{ grupo_nome | urlencode }}" class="mega-item {% if filtro_grupo == grupo_nome %}active{% endif %}">
-            <span class="category-icon">{{ grupo_emoji(grupo_nome) }}</span>
-            <span class="category-label">{{ grupo_nome }}</span>
-        </a>
-        <div class="mega-panel">
+    <section class="cats-todas-grupo">
+        <h2 class="cats-todas-titulo">
+            <a href="/?grupo={{ grupo_nome | urlencode }}" class="{% if filtro_grupo == grupo_nome %}active{% endif %}">
+                <span aria-hidden="true">{{ grupo_emoji(grupo_nome) }}</span> {{ grupo_nome }}
+            </a>
+        </h2>
+        <div class="cats-todas-links">
             {% for c in cats %}
-                <a href="/?categoria={{ c.id }}" class="mega-panel-link {% if filtro_categoria == c.id %}active{% endif %}">
+                <a href="/?categoria={{ c.id }}" class="cats-todas-link {% if filtro_categoria == c.id %}active{% endif %}">
                     {{ categoria_emoji(c.nome) }} {{ c.nome }}
                 </a>
             {% endfor %}
         </div>
-    </div>
+    </section>
     {% endfor %}
 </div>
-<div class="mb-4"></div>
+
+<script>
+(function () {
+    // O painel nasce aberto no HTML: sem JS, o link "#todasCategorias" só
+    // rola até a lista completa e tudo continua funcionando. Com JS, ele
+    // vira um botão de abrir/fechar pra economizar tela no mobile.
+    var alvo = document.getElementById("todasCategorias");
+    var gatilho = document.getElementById("btnVerTodasCats");
+    if (!alvo || !gatilho) return;
+
+    // Se a pessoa chegou com um filtro de categoria/grupo aplicado, o painel
+    // já começa aberto — ela está justamente navegando por categorias.
+    var comecaAberto = {{ 'true' if (filtro_categoria or filtro_grupo) else 'false' }};
+    function aplicar(aberto) {
+        alvo.hidden = !aberto;
+        gatilho.setAttribute("aria-expanded", aberto ? "true" : "false");
+        gatilho.classList.toggle("active", aberto);
+    }
+    aplicar(comecaAberto);
+
+    gatilho.addEventListener("click", function (e) {
+        e.preventDefault();
+        aplicar(alvo.hidden);
+        if (!alvo.hidden) alvo.focus({ preventScroll: true });
+    });
+})();
+</script>
 
 {% if usuario and not cidade_usuario and profissionais_por_cidade %}
-<div class="alert alert-light border small">
+<p class="aviso-suave">
     Dica: <a href="/minha-localizacao">cadastre sua cidade</a> pra gente mostrar primeiro quem atende perto de você.
-</div>
+</p>
 {% endif %}
 
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <h2 class="h6 fw-semibold mb-0 text-muted">
+<div class="resultados-topo">
+    <h2 class="resultados-contagem">
         {% if profissionais|length == 1 %}
             1 profissional encontrado
         {% else %}
@@ -201,7 +273,7 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
         {% endif %}
         {%- if filtro_cidade %} em {{ filtro_cidade }}{% endif %}
     </h2>
-    <div>
+    <div class="resultados-filtros" role="group" aria-label="Ordenar resultados">
         <a href="{{ url_ordenar('avaliacao') }}" class="btn-chip {% if ordenar == 'avaliacao' %}active{% endif %}">Melhor avaliados</a>
         <a href="{{ url_ordenar('recentes') }}" class="btn-chip {% if ordenar == 'recentes' %}active{% endif %}">Mais recentes</a>
     </div>
@@ -209,29 +281,29 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
 
 {% if profissionais_por_cidade %}
     {% for cidade_nome, lista in profissionais_por_cidade %}
-    <div class="secao-bairro {% if cidade_usuario and cidade_nome == cidade_usuario %}secao-bairro-destaque{% endif %} mt-3 mb-4">
-        <h6 class="text-uppercase text-muted mb-3 titulo-secao">
+    <section class="secao-cidade {% if cidade_usuario and cidade_nome == cidade_usuario %}secao-cidade-destaque{% endif %}">
+        <h3 class="titulo-secao">
             {% if cidade_usuario and cidade_nome == cidade_usuario %}
-                📍 {{ cidade_nome }} <span class="badge bg-primary">sua cidade</span>
+                📍 {{ cidade_nome }} <span class="selo selo-cidade">sua cidade</span>
             {% else %}
                 {{ cidade_nome }}
             {% endif %}
-        </h6>
-        <div class="resultados-lista">
+        </h3>
+        <div class="resultados-grade">
             {% for p in lista %}
                 {{ card_profissional(p) }}
             {% endfor %}
         </div>
-    </div>
+    </section>
     {% endfor %}
 {% elif profissionais %}
-<div class="resultados-lista {% if profissionais|length <= 2 %}resultados-centralizado{% endif %}">
+<div class="resultados-grade">
     {% for p in profissionais %}
         {{ card_profissional(p) }}
     {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-light border">
+<div class="resultados-vazio">
     <p class="mb-2">Não encontramos profissionais com esses filtros ainda.</p>
     <a href="/?explorar=1" class="btn-chip">Ver todos os profissionais</a>
     {% if filtro_cidade %}
@@ -240,9 +312,9 @@ document.getElementById("formBuscaIndex").addEventListener("submit", function ()
 </div>
 {% endif %}
 
-<div class="text-center mt-5 pt-3 border-top small text-muted">
+<div class="rodape-catalogo">
     <span>É profissional autônomo? <a href="/comecar?tipo=profissional">Cadastre-se de graça</a></span>
-    <span class="mx-2">·</span>
+    <span class="rodape-catalogo-sep" aria-hidden="true">·</span>
     <span>Conhece alguém que devia estar aqui? <a href="/indicar">Indique</a></span>
 </div>
 {% endblock %}

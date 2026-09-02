@@ -168,6 +168,25 @@
         <textarea name="descricao" class="form-control" rows="4" placeholder="Conte um pouco sobre sua experiência, o que você faz, diferenciais...">{{ (perfil.descricao or '') if perfil else '' }}</textarea>
     </div>
 
+    {% if admin_editando %}
+    {# Só o admin vê isso. Serve pra separar quem presta serviço de quem é
+       empresa/administração da plataforma (a H2 Sistemas, por exemplo).
+       Não muda busca, ordenação nem nada no catálogo: é só classificação. #}
+    <div class="mb-4">
+        <label class="form-label" for="tipoPerfil">Tipo de cadastro <span class="text-muted small">(uso interno)</span></label>
+        {% set tipo_atual = (perfil.tipo_perfil or 'professional') if perfil else 'professional' %}
+        <select name="tipo_perfil" id="tipoPerfil" class="form-select">
+            <option value="professional" {% if tipo_atual == 'professional' %}selected{% endif %}>Profissional</option>
+            <option value="company" {% if tipo_atual == 'company' %}selected{% endif %}>Empresa</option>
+            <option value="admin" {% if tipo_atual == 'admin' %}selected{% endif %}>Administração da plataforma</option>
+        </select>
+        <div class="form-text">
+            Não dá nenhum destaque no catálogo — quem administra a plataforma
+            aparece exatamente como qualquer outro cadastro.
+        </div>
+    </div>
+    {% endif %}
+
     <button type="submit" class="btn btn-primary">Salvar perfil</button>
     {% if perfil and perfil.aprovado %}
     <a href="/profissional/{{ perfil.id }}" class="btn btn-outline-secondary">Ver como fica meu perfil</a>

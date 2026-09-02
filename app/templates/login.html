@@ -7,8 +7,19 @@
         <div class="landing-role-icon mx-auto mb-3">👤</div>
         <h3 class="mb-4 text-center">Entrar</h3>
 
+        {% if mensagem %}
+        <div class="alert alert-success">{{ mensagem }}</div>
+        {% endif %}
+
         {% if erro %}
-        <div class="alert alert-danger">{{ erro }}</div>
+        <div class="alert alert-danger">
+            {{ erro }}
+            {% if email_nao_confirmado %}
+            <div class="mt-1">
+                <a href="/reenviar-confirmacao?email={{ email_nao_confirmado | urlencode }}">Reenviar e-mail de confirmação</a>
+            </div>
+            {% endif %}
+        </div>
         {% endif %}
 
         <form method="post" action="/login">
@@ -18,7 +29,10 @@
                 <input type="email" name="email" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Senha</label>
+                <div class="d-flex justify-content-between">
+                    <label class="form-label">Senha</label>
+                    <a href="/esqueci-senha" class="small">Esqueci minha senha</a>
+                </div>
                 <input type="password" name="senha" class="form-control" required>
             </div>
             <button type="submit" class="btn btn-primary w-100">Entrar</button>

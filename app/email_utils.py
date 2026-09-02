@@ -74,6 +74,18 @@ def enviar_email_confirmacao(destinatario: str, nome: str, link_confirmacao: str
     enviar_email(destinatario, "Confirme seu cadastro — SocorreAqui", corpo)
 
 
+def enviar_email_redefinicao_senha(destinatario: str, nome: str, link_redefinicao: str) -> None:
+    primeiro_nome = html.escape(nome.split(" ")[0])
+    link_seguro = html.escape(link_redefinicao)
+    corpo = f"""
+    <p>Oi, {primeiro_nome}!</p>
+    <p>Pediram a redefinição da senha da sua conta no <strong>SocorreAqui</strong>. Se foi você, clique no link abaixo (válido por 1 hora):</p>
+    <p><a href="{link_seguro}">{link_seguro}</a></p>
+    <p style="color:#888;font-size:13px;">Se você não pediu isso, pode ignorar este e-mail -- sua senha continua a mesma.</p>
+    """
+    enviar_email(destinatario, "Redefinir sua senha — SocorreAqui", corpo)
+
+
 def enviar_email_novo_cadastro(
     destinatario_admin: str, nome: str, email: str, telefone: str, tipo: str
 ) -> None:

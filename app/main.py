@@ -61,6 +61,14 @@ def _garantir_colunas_novas():
                 "ALTER TABLE professional_profiles "
                 "ADD COLUMN criado_via_indicacao BOOLEAN NOT NULL DEFAULT FALSE"
             ))
+    if "tipo_perfil" not in colunas:
+        # Todo perfil que já existe é de prestador de serviço -- quem for
+        # empresa/administração da plataforma é marcado depois, na mão.
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE professional_profiles "
+                "ADD COLUMN tipo_perfil VARCHAR(20) NOT NULL DEFAULT 'professional'"
+            ))
 
 
 _garantir_colunas_novas()
@@ -96,12 +104,13 @@ app.add_middleware(
 )
 
 
-# --- Limite de tentativas de login (proteção simples contra força bruta) ---
-# Guardado em memória (zera a cada reinício/deploy) -- não é perfeito, mas
-# barra o ataque mais óbvio: tentar senha atrás de senha sem parar.
-_tentativas_login: dict[str, list[float]] = {}
-LOGIN_MAX_TENTATIVAS = 8
-LOGIN_JANELA_SEGUNDOS = 15 * 60  # 15 minutos
+# --- Limite de tentativas por ação (proteção simples contra força bruta e
+# spam) --- Guardado em memória (zera a cada reinício/deploy) -- não é
+# perfeito, mas barra o ataque mais óbvio: bater a mesma ação sem parar.
+# Usado pro login (senha atrás de senha), pro cadastro (spam de contas /
+# flood de e-mail pro admin) e pro esqueci-minha-senha (flood de e-mail pra
+# vítima).
+_tentativas_por_acao: dict[str, dict[str, list[float]]] = {}
 
 
 def _ip_cliente(request: Request) -> str:
@@ -114,20 +123,38 @@ def _ip_cliente(request: Request) -> str:
     return request.client.host if request.client else "desconhecido"
 
 
-def _login_bloqueado(chave: str) -> bool:
+def _acao_bloqueada(acao: str, chave: str, limite: int, janela_segundos: int) -> bool:
     agora = time.time()
-    tentativas = _tentativas_login.get(chave, [])
-    tentativas = [t for t in tentativas if agora - t < LOGIN_JANELA_SEGUNDOS]
-    _tentativas_login[chave] = tentativas
-    return len(tentativas) >= LOGIN_MAX_TENTATIVAS
+    tentativas_da_acao = _tentativas_por_acao.setdefault(acao, {})
+    tentativas = [t for t in tentativas_da_acao.get(chave, []) if agora - t < janela_segundos]
+    tentativas_da_acao[chave] = tentativas
+    return len(tentativas) >= limite
+
+
+def _registrar_tentativa(acao: str, chave: str) -> None:
+    _tentativas_por_acao.setdefault(acao, {}).setdefault(chave, []).append(time.time())
+
+
+def _limpar_tentativas(acao: str, chave: str) -> None:
+    _tentativas_por_acao.get(acao, {}).pop(chave, None)
+
+
+LOGIN_MAX_TENTATIVAS = 8
+LOGIN_JANELA_SEGUNDOS = 15 * 60  # 15 minutos
+CADASTRO_MAX_TENTATIVAS = 5
+CADASTRO_JANELA_SEGUNDOS = 30 * 60  # 30 minutos
+RESET_SENHA_MAX_TENTATIVAS = 5
+RESET_SENHA_JANELA_SEGUNDOS = 60 * 60  # 1 hora
+REENVIO_CONFIRMACAO_MAX_TENTATIVAS = 5
+REENVIO_CONFIRMACAO_JANELA_SEGUNDOS = 60 * 60  # 1 hora
+
+
+def _login_bloqueado(chave: str) -> bool:
+    return _acao_bloqueada("login", chave, LOGIN_MAX_TENTATIVAS, LOGIN_JANELA_SEGUNDOS)
 
 
 def _registrar_tentativa_falha(chave: str) -> None:
-    _tentativas_login.setdefault(chave, []).append(time.time())
-
-
-def _limpar_tentativas(chave: str) -> None:
-    _tentativas_login.pop(chave, None)
+    _registrar_tentativa("login", chave)
 
 
 @app.middleware("http")
@@ -143,16 +170,33 @@ async def cabecalhos_de_seguranca(request: Request, call_next):
         resposta.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return resposta
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()  # e-mail do seu usuário admin, defina no .env
+# Quem entra no painel /admin. Aceita MAIS DE UM e-mail, separados por
+# vírgula -- a mesma pessoa costuma ter uma conta pessoa física (que só
+# administra o site) e uma conta empresa (que também fica no catálogo
+# recebendo propostas), e as duas precisam abrir o painel. Ex:
+#
+#     ADMIN_EMAIL=fulano@gmail.com,empresa@gmail.com
+#
+# Ser admin é só permissão de painel: não muda o tipo da conta nem tira
+# ninguém do catálogo. Quem decide isso é o campo `tipo` do usuário.
+ADMIN_EMAILS = [
+    parte.strip().lower()
+    for parte in os.getenv("ADMIN_EMAIL", "").split(",")
+    if parte.strip()
+]
+
+
+def _eh_email_admin(email: str | None) -> bool:
+    return bool(email) and email.strip().lower() in ADMIN_EMAILS
 
 
 def _avisar_admin_novo_cadastro(usuario: "models.User") -> None:
     # Se ADMIN_EMAIL não estiver configurado, ou o SendGrid não estiver
     # configurado, enviar_email() já cuida de não quebrar nada (só imprime
     # no terminal) -- então não precisa checar sendgrid_habilitado aqui.
-    if ADMIN_EMAIL:
+    for destinatario in ADMIN_EMAILS:
         email_utils.enviar_email_novo_cadastro(
-            ADMIN_EMAIL, usuario.nome, usuario.email, usuario.telefone, usuario.tipo
+            destinatario, usuario.nome, usuario.email, usuario.telefone, usuario.tipo
         )
 
 
@@ -179,6 +223,27 @@ def _tojson(valor):
 
 
 templates.env.filters["tojson"] = _tojson
+
+
+def _nota_br(valor) -> str:
+    """Nota no formato brasileiro: 5.0 -> "5,0". Nunca inventa nota: quem
+    não tem avaliação não passa por aqui (o template checa antes)."""
+    try:
+        return f"{float(valor):.1f}".replace(".", ",")
+    except (TypeError, ValueError):
+        return ""
+
+
+templates.env.filters["nota_br"] = _nota_br
+
+
+def _texto_avaliacoes(total: int) -> str:
+    """"1 avaliação" / "27 avaliações" -- singular e plural corretos, com o
+    número real que existe no banco."""
+    return "1 avaliação" if total == 1 else f"{total} avaliações"
+
+
+templates.env.globals["texto_avaliacoes"] = _texto_avaliacoes
 
 # Ícone do WhatsApp (SVG inline) usado nos botões de contato — evita
 # depender de um pacote de ícones externo pra um único glifo.
@@ -366,6 +431,36 @@ CATEGORIAS_DESTAQUE_LANDING = [
     "Cabeleireiro",
 ]
 
+# Atalho rápido de categorias no topo da busca (mobile e desktop): as 5 mais
+# procuradas, com rótulo curto pra caber num chip pequeno. NENHUMA categoria
+# é removida do site -- as ~50 continuam acessíveis pelo "Ver todas" e pelo
+# menu por grupo. Cada item é (nome real da categoria, rótulo curto, emoji).
+CATEGORIAS_POPULARES = [
+    ("Eletricista", "Eletricista", "⚡"),
+    ("Encanador", "Encanador", "🚿"),
+    ("Mecânico/Oficina", "Mecânico", "🔧"),
+    ("Diarista / Faxina", "Limpeza", "🧹"),
+    ("Informática & Tecnologia", "Tecnologia", "💻"),
+]
+
+
+def categorias_populares(db: Session) -> list[dict]:
+    """Devolve as categorias populares que realmente existem no banco, na
+    ordem de CATEGORIAS_POPULARES. Se alguma não existir (banco novo, nome
+    editado), ela simplesmente não aparece -- nada é inventado."""
+    por_nome = {
+        c.nome: c
+        for c in db.query(models.Category)
+        .filter(models.Category.nome.in_([n for n, _, _ in CATEGORIAS_POPULARES]))
+        .all()
+    }
+    return [
+        {"id": por_nome[nome].id, "rotulo": rotulo, "emoji": emoji}
+        for nome, rotulo, emoji in CATEGORIAS_POPULARES
+        if nome in por_nome
+    ]
+
+
 # Descrição curta de cada categoria em destaque, só pro card ficar mais
 # informativo na home — puramente texto de apresentação, não afeta o filtro.
 CATEGORIA_DESCRICOES_DESTAQUE = {
@@ -408,6 +503,7 @@ def cidades_mais_ativas(db: Session, limite: int = 6) -> list[str]:
         .filter(
             models.ProfessionalProfile.aprovado == True,  # noqa: E712
             models.ProfessionalProfile.ativo == True,  # noqa: E712
+            models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
             models.ProfessionalProfile.cidade.isnot(None),
             models.ProfessionalProfile.cidade != "",
         )
@@ -436,9 +532,14 @@ def _resultados_catalogo(
     except ValueError:
         categoria_id = None
 
+    # Aparecer no catálogo depende de três coisas, nessa ordem: a conta ser
+    # do tipo "profissional", o perfil estar aprovado pelo admin e não estar
+    # pausado. Uma conta que virou cliente sai daqui na hora, mesmo que o
+    # perfil antigo continue guardado no banco.
     query = db.query(models.ProfessionalProfile).filter(
         models.ProfessionalProfile.aprovado == True,  # noqa: E712
         models.ProfessionalProfile.ativo == True,  # noqa: E712
+        models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
     )
 
     if categoria_id:
@@ -524,6 +625,7 @@ def _resultados_catalogo(
             "filtro_busca": busca or "",
             "ordenar": ordenar,
             "cidades_destaque": cidades_mais_ativas(db),
+            "categorias_populares": categorias_populares(db),
             "eh_admin_usuario": eh_admin(usuario),
             "titulo_pagina": titulo_pagina,
             "meta_descricao_pagina": meta_descricao_pagina,
@@ -572,6 +674,7 @@ def catalogo(
             .filter(
                 models.ProfessionalProfile.aprovado == True,  # noqa: E712
                 models.ProfessionalProfile.ativo == True,  # noqa: E712
+                models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
             )
             .all()
         )
@@ -591,6 +694,7 @@ def catalogo(
             {
                 "request": request,
                 "categorias_destaque": categorias_destaque,
+                "categorias_populares": categorias_populares(db),
                 "cidades_destaque": cidades_mais_ativas(db),
                 "profissionais_destaque": profissionais_destaque,
                 "profissional_hero": profissional_hero,
@@ -692,6 +796,7 @@ def sitemap_xml(db: Session = Depends(get_db)):
         .filter(
             models.ProfessionalProfile.aprovado == True,  # noqa: E712
             models.ProfessionalProfile.ativo == True,  # noqa: E712
+            models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
         )
         .all()
     )
@@ -732,6 +837,31 @@ def _next_seguro(next: str | None) -> str:
     if next and next.startswith("/") and not next.startswith("//") and not next.startswith("/\\"):
         return next
     return "/"
+
+
+def _msg(texto: str) -> str:
+    """URL-encode pra embutir uma mensagem de aviso em ?mensagem=... num
+    redirect (ex: pós-confirmação de e-mail, pós-redefinição de senha)."""
+    from urllib.parse import quote
+    return quote(texto)
+
+
+def _url_base(request: Request) -> str:
+    """URL base pra montar link clicável de e-mail (confirmação, redefinição
+    de senha). Usa o domínio de produção quando publicado -- em dev, o
+    próprio host da requisição (senão o link do e-mail apontaria sempre pro
+    site de verdade, mesmo testando local)."""
+    return SITE_URL if RODANDO_EM_PRODUCAO else str(request.base_url).rstrip("/")
+
+
+TOKEN_MAX_IDADE_CONFIRMACAO = 60 * 60 * 24 * 3  # 3 dias
+TOKEN_MAX_IDADE_RESET_SENHA = 60 * 60  # 1 hora
+
+
+def _enviar_confirmacao_email(request: Request, usuario: "models.User") -> None:
+    token = auth.gerar_token(SECRET_KEY, "confirmar-email", {"uid": usuario.id})
+    link = f"{_url_base(request)}/confirmar-email?token={token}"
+    email_utils.enviar_email_confirmacao(usuario.email, usuario.nome, link)
 
 
 @app.get("/comecar")
@@ -784,6 +914,13 @@ def cadastrar(
             },
         )
 
+    # Limite por IP -- sem isso, um bot consegue criar conta atrás de conta
+    # (spam no catálogo, flood do e-mail que avisa o admin de novo cadastro).
+    chave_limite = _ip_cliente(request)
+    if _acao_bloqueada("cadastro", chave_limite, CADASTRO_MAX_TENTATIVAS, CADASTRO_JANELA_SEGUNDOS):
+        return erro("Muitas tentativas de cadastro. Aguarde um pouco e tente de novo.")
+    _registrar_tentativa("cadastro", chave_limite)
+
     if not EMAIL_REGEX.match(email):
         return erro("Digite um e-mail válido.")
     # Mensagem genérica de propósito -- não diz se foi o e-mail ou o telefone
@@ -804,7 +941,7 @@ def cadastrar(
         tipo=tipo,
         cidade=cidade.strip() or None,
         bairro=bairro.strip() or None,
-        email_verificado=True,
+        email_verificado=False,
     )
     db.add(novo_usuario)
     db.commit()
@@ -816,6 +953,10 @@ def cadastrar(
         db.commit()
 
     _avisar_admin_novo_cadastro(novo_usuario)
+    _enviar_confirmacao_email(request, novo_usuario)
+    # Deixa a pessoa navegar logo após o cadastro (não trava o onboarding
+    # esperando o clique no e-mail) -- a confirmação só é cobrada da próxima
+    # vez que ela precisar logar de novo, em login().
     request.session["user_id"] = novo_usuario.id
 
     if tipo == "profissional":
@@ -824,11 +965,11 @@ def cadastrar(
 
 
 @app.get("/login")
-def form_login(request: Request, next: str | None = None):
+def form_login(request: Request, next: str | None = None, mensagem: str | None = None):
     return templates.TemplateResponse(
         "login.html",
         {
-            "request": request, "erro": None, "google_habilitado": google_oauth_habilitado,
+            "request": request, "erro": None, "mensagem": mensagem, "google_habilitado": google_oauth_habilitado,
             "next": _next_seguro(next) if next else "",
         },
     )
@@ -844,10 +985,13 @@ def login(
 ):
     email = email.strip().lower()
 
-    def erro(mensagem):
+    def erro(mensagem, **extra):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "erro": mensagem, "google_habilitado": google_oauth_habilitado, "next": next},
+            {
+                "request": request, "erro": mensagem, "mensagem": None,
+                "google_habilitado": google_oauth_habilitado, "next": next, **extra,
+            },
         )
 
     chave_limite = _ip_cliente(request)
@@ -871,9 +1015,162 @@ def login(
     if not usuario.ativo:
         return erro("Essa conta foi bloqueada. Entre em contato com o suporte.")
 
-    _limpar_tentativas(chave_limite)
+    if not usuario.email_verificado:
+        return erro(
+            "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada (e o spam).",
+            email_nao_confirmado=email,
+        )
+
+    _limpar_tentativas("login", chave_limite)
     request.session["user_id"] = usuario.id
     return RedirectResponse(_next_seguro(next), status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Confirmação de e-mail
+# ---------------------------------------------------------------------------
+
+@app.get("/confirmar-email")
+def confirmar_email(token: str, db: Session = Depends(get_db)):
+    dados = auth.ler_token(SECRET_KEY, "confirmar-email", token, TOKEN_MAX_IDADE_CONFIRMACAO)
+    if not dados:
+        return RedirectResponse(
+            "/login?mensagem=" + _msg("Link de confirmação inválido ou vencido. Peça um novo abaixo."),
+            status_code=303,
+        )
+
+    usuario = db.query(models.User).filter(models.User.id == dados.get("uid")).first()
+    if not usuario:
+        return RedirectResponse("/login", status_code=303)
+
+    if not usuario.email_verificado:
+        usuario.email_verificado = True
+        db.commit()
+
+    return RedirectResponse(
+        "/login?mensagem=" + _msg("E-mail confirmado! Agora é só entrar."), status_code=303,
+    )
+
+
+@app.get("/reenviar-confirmacao")
+def form_reenviar_confirmacao(request: Request, email: str = ""):
+    return templates.TemplateResponse(
+        "reenviar_confirmacao.html", {"request": request, "email": email, "enviado": False},
+    )
+
+
+@app.post("/reenviar-confirmacao")
+def reenviar_confirmacao(
+    request: Request, email: str = Form(...), db: Session = Depends(get_db),
+):
+    email = email.strip().lower()
+    chave_limite = _ip_cliente(request)
+    # Resposta é sempre "enviado" pra tela, mesmo sem mandar e-mail de
+    # verdade (limite estourado, e-mail não cadastrado, ou já confirmado) --
+    # não dá pra deixar alguém descobrir por aqui quais e-mails têm conta.
+    if not _acao_bloqueada(
+        "reenvio-confirmacao", chave_limite,
+        REENVIO_CONFIRMACAO_MAX_TENTATIVAS, REENVIO_CONFIRMACAO_JANELA_SEGUNDOS,
+    ):
+        _registrar_tentativa("reenvio-confirmacao", chave_limite)
+        usuario = db.query(models.User).filter(models.User.email == email).first()
+        if usuario and not usuario.email_verificado:
+            _enviar_confirmacao_email(request, usuario)
+
+    return templates.TemplateResponse(
+        "reenviar_confirmacao.html", {"request": request, "email": email, "enviado": True},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Esqueci minha senha
+# ---------------------------------------------------------------------------
+
+@app.get("/esqueci-senha")
+def form_esqueci_senha(request: Request):
+    return templates.TemplateResponse(
+        "esqueci_senha.html", {"request": request, "enviado": False, "erro": None},
+    )
+
+
+@app.post("/esqueci-senha")
+def esqueci_senha(
+    request: Request, email: str = Form(...), db: Session = Depends(get_db),
+):
+    email = email.strip().lower()
+    chave_limite = _ip_cliente(request)
+
+    # Mesma resposta genérica pra qualquer caso (e-mail existe ou não, é só
+    # de Google ou não, limite estourado ou não) -- evita enumeração de
+    # contas e evita que alguém veja diferença de comportamento.
+    if not _acao_bloqueada(
+        "esqueci-senha", chave_limite, RESET_SENHA_MAX_TENTATIVAS, RESET_SENHA_JANELA_SEGUNDOS,
+    ):
+        _registrar_tentativa("esqueci-senha", chave_limite)
+        usuario = db.query(models.User).filter(models.User.email == email).first()
+        if usuario and usuario.senha_hash:
+            # Assina o hash atual da senha junto -- assim, se a pessoa já
+            # trocou a senha (ou pediu outro link depois), o link antigo
+            # para de funcionar sozinho, sem precisar guardar token no banco.
+            token = auth.gerar_token(
+                SECRET_KEY, "redefinir-senha",
+                {"uid": usuario.id, "h": usuario.senha_hash[-16:]},
+            )
+            link = f"{_url_base(request)}/redefinir-senha?token={token}"
+            email_utils.enviar_email_redefinicao_senha(usuario.email, usuario.nome, link)
+
+    return templates.TemplateResponse(
+        "esqueci_senha.html", {"request": request, "enviado": True, "erro": None},
+    )
+
+
+@app.get("/redefinir-senha")
+def form_redefinir_senha(request: Request, token: str):
+    dados = auth.ler_token(SECRET_KEY, "redefinir-senha", token, TOKEN_MAX_IDADE_RESET_SENHA)
+    if not dados:
+        return templates.TemplateResponse(
+            "redefinir_senha.html",
+            {"request": request, "token": None, "erro": "Link inválido ou vencido. Peça um novo."},
+        )
+    return templates.TemplateResponse(
+        "redefinir_senha.html", {"request": request, "token": token, "erro": None},
+    )
+
+
+@app.post("/redefinir-senha")
+def redefinir_senha(
+    request: Request,
+    token: str = Form(...),
+    senha: str = Form(...),
+    senha_confirmar: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    def erro(mensagem, token_valido=True):
+        return templates.TemplateResponse(
+            "redefinir_senha.html",
+            {"request": request, "token": token if token_valido else None, "erro": mensagem},
+        )
+
+    dados = auth.ler_token(SECRET_KEY, "redefinir-senha", token, TOKEN_MAX_IDADE_RESET_SENHA)
+    if not dados:
+        return erro("Link inválido ou vencido. Peça um novo.", token_valido=False)
+
+    usuario = db.query(models.User).filter(models.User.id == dados.get("uid")).first()
+    if not usuario or not usuario.senha_hash or usuario.senha_hash[-16:] != dados.get("h"):
+        return erro("Link inválido ou vencido. Peça um novo.", token_valido=False)
+
+    if len(senha) < 6:
+        return erro("A senha precisa ter pelo menos 6 caracteres.")
+    if senha != senha_confirmar:
+        return erro("As senhas não são iguais.")
+
+    usuario.senha_hash = auth.gerar_hash_senha(senha)
+    db.commit()
+
+    return RedirectResponse(
+        "/login?mensagem=" + _msg("Senha redefinida! Agora é só entrar com a senha nova."),
+        status_code=303,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1045,6 +1342,37 @@ def salvar_minha_localizacao(
     return RedirectResponse("/", status_code=303)
 
 
+@app.post("/minha-conta/excluir")
+def excluir_minha_conta(
+    request: Request,
+    senha: str = Form(""),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not usuario:
+        return RedirectResponse("/login", status_code=303)
+
+    def erro(mensagem):
+        return templates.TemplateResponse(
+            "minha_localizacao.html", {"request": request, "usuario": usuario, "erro": mensagem},
+        )
+
+    if eh_admin(usuario):
+        return erro("A conta admin não pode se autoexcluir.")
+
+    # Quem tem senha (cadastro normal, não só Google) precisa confirmar ela
+    # antes de apagar a conta -- evita apagar sem querer por um clique
+    # errado, e evita que um CSRF vindo de outro site consiga apagar a
+    # conta sem a pessoa digitar a senha de novo.
+    if usuario.senha_hash and not auth.verificar_senha(senha, usuario.senha_hash):
+        return erro("Senha incorreta -- a conta não foi excluída.")
+
+    db.delete(usuario)
+    db.commit()
+    request.session.clear()
+    return RedirectResponse("/", status_code=303)
+
+
 # ---------------------------------------------------------------------------
 # Perfil público do profissional + avaliação
 # ---------------------------------------------------------------------------
@@ -1063,6 +1391,10 @@ def ver_profissional(
         models.ProfessionalProfile.id == profissional_id
     ).first()
     if not perfil:
+        return RedirectResponse("/", status_code=303)
+    # Conta que não é mais do tipo "profissional" não tem perfil público --
+    # o admin continua enxergando tudo pelo painel.
+    if perfil.usuario.tipo != "profissional" and not eh_admin(usuario):
         return RedirectResponse("/", status_code=303)
 
     avaliacoes = sorted(perfil.avaliacoes, key=lambda r: r.criado_em, reverse=True)
@@ -1445,7 +1777,7 @@ def salvar_perfil(
 # ---------------------------------------------------------------------------
 
 def eh_admin(usuario) -> bool:
-    return bool(usuario) and bool(ADMIN_EMAIL) and usuario.email == ADMIN_EMAIL
+    return bool(usuario) and _eh_email_admin(usuario.email)
 
 
 @app.get("/admin")
@@ -1457,11 +1789,17 @@ def admin_painel(
     if not eh_admin(usuario):
         return RedirectResponse("/", status_code=303)
 
-    pendentes = db.query(models.ProfessionalProfile).filter(
-        models.ProfessionalProfile.aprovado == False  # noqa: E712
-    ).all()
+    pendentes = (
+        db.query(models.ProfessionalProfile)
+        .filter(
+            models.ProfessionalProfile.aprovado == False,  # noqa: E712
+            models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
+        )
+        .all()
+    )
     aprovados = db.query(models.ProfessionalProfile).filter(
-        models.ProfessionalProfile.aprovado == True  # noqa: E712
+        models.ProfessionalProfile.aprovado == True,  # noqa: E712
+        models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
     ).all()
     indicacoes_pendentes = db.query(models.Indicacao).filter(
         models.Indicacao.status == "pendente"
@@ -1527,6 +1865,7 @@ def admin_painel(
             "indicacoes_autenticadas": indicacoes_autenticadas,
             "telefones_ja_profissionais": telefones_ja_profissionais,
             "clientes": clientes,
+            "emails_admin": ADMIN_EMAILS,
             "numeros": numeros,
         },
     )
@@ -1583,6 +1922,7 @@ def admin_salvar_perfil(
     especialidade_medica_outra: str = Form(""),
     atende_convenio: str | None = Form(None),
     convenios_aceitos: str = Form(""),
+    tipo_perfil: str = Form("professional"),
     foto: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     usuario=Depends(auth.usuario_logado),
@@ -1593,6 +1933,11 @@ def admin_salvar_perfil(
     perfil = db.query(models.ProfessionalProfile).filter(models.ProfessionalProfile.id == perfil_id).first()
     if not perfil:
         return RedirectResponse("/admin", status_code=303)
+
+    # Classificação interna (profissional / empresa / administração). Não
+    # afeta busca nem destaque no catálogo -- só registra o que o cadastro é.
+    if tipo_perfil in ("professional", "company", "admin"):
+        perfil.tipo_perfil = tipo_perfil
 
     erro_msg = _aplicar_dados_perfil(
         perfil, db, cidade=cidade, bairro=bairro, endereco=endereco,
@@ -1625,6 +1970,147 @@ def admin_salvar_perfil(
     return RedirectResponse("/admin", status_code=303)
 
 
+@app.get("/admin/usuario/{usuario_id}/editar")
+def admin_form_editar_usuario(
+    usuario_id: int,
+    request: Request,
+    salvo: str | None = None,
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
+    if not alvo:
+        return RedirectResponse("/admin", status_code=303)
+
+    return templates.TemplateResponse(
+        "admin_editar_usuario.html",
+        {
+            "request": request,
+            "usuario": usuario,
+            "eh_admin_usuario": True,
+            "alvo": alvo,
+            "eh_conta_admin": _eh_email_admin(alvo.email),
+            "erro": None,
+            "salvo": bool(salvo),
+        },
+    )
+
+
+@app.post("/admin/usuario/{usuario_id}/editar")
+def admin_salvar_usuario(
+    usuario_id: int,
+    request: Request,
+    nome: str = Form(...),
+    email: str = Form(...),
+    telefone: str = Form(...),
+    cidade: str = Form(""),
+    bairro: str = Form(""),
+    tipo: str = Form("cliente"),
+    email_verificado: str | None = Form(None),
+    ativo: str | None = Form(None),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    """Edita os dados de cadastro de qualquer conta (cliente ou profissional).
+
+    É a tela que resolve o caso mais comum do dia a dia: telefone digitado
+    errado ou repetido, e-mail trocado, pessoa que não recebeu a confirmação.
+    O perfil público do profissional continua sendo editado em
+    /admin/profissional/<id>/editar -- aqui são só os dados da conta.
+    """
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
+    if not alvo:
+        return RedirectResponse("/admin", status_code=303)
+
+    eh_conta_admin = _eh_email_admin(alvo.email)
+
+    def erro(mensagem):
+        return templates.TemplateResponse(
+            "admin_editar_usuario.html",
+            {
+                "request": request,
+                "usuario": usuario,
+                "eh_admin_usuario": True,
+                "alvo": alvo,
+                "eh_conta_admin": eh_conta_admin,
+                "erro": mensagem,
+                "salvo": False,
+            },
+        )
+
+    nome = nome.strip()
+    email = email.strip().lower()
+    telefone = telefone.strip()
+
+    if not nome:
+        return erro("O nome não pode ficar em branco.")
+    if not EMAIL_REGEX.match(email):
+        return erro("Digite um e-mail válido.")
+    if not telefone:
+        return erro("O telefone não pode ficar em branco.")
+
+    # Uma conta é admin pelo e-mail (lista ADMIN_EMAIL, do ambiente). Deixar
+    # trocar o e-mail aqui tiraria o acesso ao painel na hora, sem jeito de
+    # voltar pela interface -- então esse campo fica congelado.
+    if eh_conta_admin and email != alvo.email:
+        return erro(
+            "Essa conta está na lista ADMIN_EMAIL. Ajuste a variável de ambiente "
+            "antes de mudar o e-mail, senão ela perde o acesso ao painel."
+        )
+
+    # Diferente do cadastro público (que dá uma mensagem genérica de propósito,
+    # pra ninguém descobrir quem tem conta), aqui o admin precisa saber
+    # exatamente qual campo bateu -- e com quem.
+    outro_email = db.query(models.User).filter(
+        models.User.email == email, models.User.id != alvo.id
+    ).first()
+    if outro_email:
+        return erro(f"O e-mail {email} já é usado pela conta de {outro_email.nome}.")
+
+    outro_telefone = db.query(models.User).filter(
+        models.User.telefone == telefone, models.User.id != alvo.id
+    ).first()
+    if outro_telefone:
+        return erro(
+            f"O telefone {telefone} já é usado pela conta de {outro_telefone.nome} "
+            f"({outro_telefone.email})."
+        )
+
+    if tipo not in ("cliente", "profissional"):
+        tipo = alvo.tipo
+
+    alvo.nome = nome
+    alvo.email = email
+    alvo.telefone = telefone
+    alvo.cidade = cidade.strip() or None
+    alvo.bairro = bairro.strip() or None
+    alvo.email_verificado = email_verificado is not None
+    if not eh_conta_admin:  # o admin não consegue se autobloquear
+        alvo.ativo = ativo is not None
+
+    if tipo != alvo.tipo:
+        if tipo == "profissional":
+            # Mesmo caminho do cadastro normal: perfil em branco, esperando
+            # o profissional preencher e o admin aprovar.
+            if not alvo.perfil_profissional:
+                db.add(models.ProfessionalProfile(usuario_id=alvo.id, cidade=""))
+        elif alvo.perfil_profissional:
+            # Voltando pra cliente, o perfil NÃO é apagado (isso levaria junto
+            # as avaliações que os clientes deixaram) -- só sai do catálogo.
+            alvo.perfil_profissional.ativo = False
+            alvo.perfil_profissional.aprovado = False
+        alvo.tipo = tipo
+
+    db.commit()
+    return RedirectResponse(f"/admin/usuario/{alvo.id}/editar?salvo=1", status_code=303)
+
+
 @app.post("/admin/usuario/{usuario_id}/bloquear")
 def admin_bloquear_usuario(
     usuario_id: int,
@@ -1634,7 +2120,7 @@ def admin_bloquear_usuario(
     if not eh_admin(usuario):
         return RedirectResponse("/", status_code=303)
     alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
-    if alvo and alvo.email != ADMIN_EMAIL:  # admin nao consegue se autobloquear
+    if alvo and not _eh_email_admin(alvo.email):  # nenhum admin bloqueia outro (nem a si)
         alvo.ativo = not alvo.ativo
         db.commit()
     return RedirectResponse("/admin", status_code=303)
@@ -1649,7 +2135,7 @@ def admin_excluir_usuario(
     if not eh_admin(usuario):
         return RedirectResponse("/", status_code=303)
     alvo = db.query(models.User).filter(models.User.id == usuario_id).first()
-    if alvo and alvo.email != ADMIN_EMAIL:  # admin nao consegue se autoexcluir
+    if alvo and not _eh_email_admin(alvo.email):  # nenhum admin exclui outro (nem a si)
         db.delete(alvo)
         db.commit()
     return RedirectResponse("/admin", status_code=303)

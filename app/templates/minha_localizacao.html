@@ -45,6 +45,39 @@
             </div>
             <button type="submit" class="btn btn-primary">Salvar</button>
         </form>
+
+        <hr class="my-5">
+
+        <h6 class="text-danger">Excluir minha conta</h6>
+        <p class="text-muted small">
+            Isso apaga sua conta, seu perfil (se você for profissional) e suas avaliações
+            permanentemente. Não tem como desfazer.
+        </p>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalExcluirConta">
+            Excluir minha conta
+        </button>
+    </div>
+</div>
+
+<div class="modal fade" id="modalExcluirConta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="/minha-conta/excluir" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar exclusão da conta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza? Essa ação não pode ser desfeita.</p>
+                {% if usuario.senha_hash %}
+                <label class="form-label">Digite sua senha pra confirmar</label>
+                <input type="password" name="senha" class="form-control" required>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Excluir definitivamente</button>
+            </div>
+        </form>
     </div>
 </div>
 

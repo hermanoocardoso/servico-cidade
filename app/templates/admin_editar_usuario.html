@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block titulo %}Editar conta de {{ alvo.nome }} | Admin{% endblock %}
+
+{% block conteudo %}
+<div class="perfil-barra-topo">
+    <a href="/admin" class="link-acao">&larr; Voltar ao painel</a>
+    {% if alvo.tipo == "profissional" and alvo.perfil_profissional %}
+        <a href="/admin/profissional/{{ alvo.perfil_profissional.id }}/editar" class="btn btn-secundario btn-sm">
+            🛠️ Editar perfil profissional
+        </a>
+    {% endif %}
+</div>
+
+<section class="perfil-secao">
+    <h1 class="h5 mb-1">Editar conta de {{ alvo.nome }}</h1>
+    <p class="text-muted small mb-3">
+        Dados de cadastro (nome, contato e acesso). O perfil público do
+        profissional — foto, descrição, categorias — é editado em outra tela.
+    </p>
+
+    {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+    {% if salvo %}<div class="alert alert-success">Dados salvos.</div>{% endif %}
+
+    <dl class="row small text-muted mb-4">
+        <dt class="col-5 col-sm-3 fw-normal">Cadastrado em</dt>
+        <dd class="col-7 col-sm-9">{{ alvo.criado_em.strftime("%d/%m/%Y") if alvo.criado_em else "—" }}</dd>
+        <dt class="col-5 col-sm-3 fw-normal">Forma de acesso</dt>
+        <dd class="col-7 col-sm-9">
+            {% if alvo.google_id %}Entra com o Google{% endif %}
+            {%- if alvo.google_id and alvo.senha_hash %} e {% endif %}
+            {%- if alvo.senha_hash %}Senha própria{% endif %}
+            {%- if not alvo.google_id and not alvo.senha_hash %}Sem senha e sem Google (criado pelo admin){% endif %}
+        </dd>
+    </dl>
+
+    <form method="post" action="/admin/usuario/{{ alvo.id }}/editar">
+        <div class="mb-3">
+            <label class="form-label" for="campoNome">Nome</label>
+            <input type="text" id="campoNome" name="nome" class="form-control" value="{{ alvo.nome }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="campoEmail">E-mail</label>
+            <input type="email" id="campoEmail" name="email" class="form-control" value="{{ alvo.email }}"
+                   {% if eh_conta_admin %}readonly{% endif %} required>
+            {% if eh_conta_admin %}
+            <div class="form-text">
+                Essa conta está na lista <code>ADMIN_EMAIL</code>, por isso abre o painel.
+                Trocar o e-mail aqui tiraria esse acesso, então o campo fica travado —
+                ajuste primeiro a variável de ambiente.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="campoTelefone">Telefone (WhatsApp)</label>
+            <input type="text" id="campoTelefone" name="telefone" class="form-control"
+                   value="{{ alvo.telefone }}" placeholder="(22) 99999-9999" required>
+            <div class="form-text">Cada conta precisa de um telefone diferente — é por ele que o site evita cadastro duplicado.</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label class="form-label" for="campoCidade">Cidade <span class="text-muted small">(opcional)</span></label>
+                <input type="text" id="campoCidade" name="cidade" class="form-control" value="{{ alvo.cidade or '' }}">
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="campoBairro">Bairro <span class="text-muted small">(opcional)</span></label>
+                <input type="text" id="campoBairro" name="bairro" class="form-control" value="{{ alvo.bairro or '' }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="campoTipo">Tipo de conta</label>
+            <select name="tipo" id="campoTipo" class="form-select">
+                <option value="cliente" {% if alvo.tipo == "cliente" %}selected{% endif %}>Cliente (contrata serviços)</option>
+                <option value="profissional" {% if alvo.tipo == "profissional" %}selected{% endif %}>Profissional (oferece serviços)</option>
+            </select>
+            <div class="form-text">
+                É isso que decide se a pessoa aparece no catálogo — administrar o painel
+                não tem nada a ver: uma conta admin pode ser cliente (fica fora do catálogo)
+                ou profissional (fica no catálogo, sem destaque nenhum por ser admin).<br>
+                Virando profissional, um perfil em branco é criado e entra na fila de aprovação.
+                Voltando para cliente, o perfil <strong>não é apagado</strong> — ele só sai do
+                catálogo (pausado), então nenhuma avaliação é perdida.
+            </div>
+        </div>
+
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="email_verificado" id="campoEmailVerificado"
+                   {% if alvo.email_verificado %}checked{% endif %}>
+            <label class="form-check-label" for="campoEmailVerificado">
+                E-mail confirmado
+                <span class="text-muted small d-block">Marque para liberar o login de quem não recebeu o e-mail de confirmação.</span>
+            </label>
+        </div>
+
+        <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" name="ativo" id="campoAtivo"
+                   {% if alvo.ativo %}checked{% endif %} {% if eh_conta_admin %}disabled{% endif %}>
+            <label class="form-check-label" for="campoAtivo">
+                Login liberado
+                <span class="text-muted small d-block">
+                    {% if eh_conta_admin %}Conta de admin não pode ser bloqueada pelo painel.
+                    {% else %}Desmarcado, a pessoa continua cadastrada mas não consegue entrar.{% endif %}
+                </span>
+            </label>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary fw-semibold">Salvar dados</button>
+            <a href="/admin" class="btn btn-secundario">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

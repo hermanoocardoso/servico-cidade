@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}SocorreAqui — precisou, encontrou. 🏃🔧⚡️{% endblock %}</title>
-    <meta name="description" content="{% block meta_descricao %}Encontre eletricistas, diaristas, manicures, mecânicos e outros profissionais de confiança perto de você em Macaé. Cadastro gratuito, contato direto pelo WhatsApp.{% endblock %}">
+    <meta name="description" content="{% block meta_descricao %}Encontre eletricistas, diaristas, manicures, mecânicos e outros profissionais da sua região em Macaé. Cadastro gratuito, contato direto pelo WhatsApp.{% endblock %}">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8F%83</text></svg>">
 
     {# Open Graph -- card grande ao compartilhar o link (WhatsApp, etc). #}
@@ -36,59 +36,109 @@
     {% endif %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top mb-4" id="navPrincipal">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top" id="navPrincipal">
         <div class="container">
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
                 <span>🏃 SocorreAqui</span>
                 <span class="navbar-tagline d-none d-md-inline">— precisou, encontrou.</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu"
-                    aria-controls="navMenu" aria-label="Abrir menu">
+            {# --- Mobile: abre o painel lateral (offcanvas) --- #}
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas"
+                    data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menu">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse flex-grow-0 ms-auto" id="navMenu">
-                <div class="d-flex flex-column flex-lg-row gap-2 py-2 py-lg-0 align-items-lg-center">
-                    {% if usuario %}
-                        <div class="dropdown">
-                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                Olá, {{ usuario.nome.split(" ")[0] }}
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                {% if usuario.tipo == "profissional" %}
-                                    <li><a class="dropdown-item" href="/profissional/perfil/editar">Meu perfil</a></li>
-                                    {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
-                                        <li><a class="dropdown-item" href="/profissional/{{ usuario.perfil_profissional.id }}">Perfil público</a></li>
-                                    {% endif %}
+
+            {# --- Desktop: o mesmo menu de sempre, só escondido no mobile --- #}
+            <div class="d-none d-lg-flex gap-2 align-items-center ms-auto">
+                {% if usuario %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            Olá, {{ usuario.nome.split(" ")[0] }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if usuario.tipo == "profissional" %}
+                                <li><a class="dropdown-item" href="/profissional/perfil/editar">Meu perfil</a></li>
+                                {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
+                                    <li><a class="dropdown-item" href="/profissional/{{ usuario.perfil_profissional.id }}">Perfil público</a></li>
                                 {% endif %}
-                                <li><a class="dropdown-item" href="/minha-localizacao">Meus dados</a></li>
-                                <li><a class="dropdown-item" href="/indicar">Indicar profissional</a></li>
-                                {% if eh_admin_usuario %}
-                                    <li><a class="dropdown-item" href="/admin">Admin</a></li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/logout">Sair</a></li>
-                            </ul>
-                        </div>
-                    {% else %}
-                        <a href="/login" class="btn btn-outline-light btn-sm">Entrar</a>
-                        <a href="/comecar?tipo=cliente" class="btn btn-light btn-sm fw-semibold">Criar conta</a>
-                    {% endif %}
-                </div>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="/minha-localizacao">Meus dados</a></li>
+                            <li><a class="dropdown-item" href="/indicar">Indicar profissional</a></li>
+                            {% if eh_admin_usuario %}
+                                <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Sair</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <a href="/login" class="btn btn-outline-light btn-sm">Entrar</a>
+                    <a href="/comecar?tipo=cliente" class="btn btn-light btn-sm fw-semibold">Criar conta</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="container pb-5">
+    {# ---------------------------------------------------------------
+       Painel lateral do mobile. Só lista o que existe de verdade no site:
+       cada item aponta pra uma página real, e opção de administração só
+       aparece pra quem é admin.
+       --------------------------------------------------------------- #}
+    <div class="offcanvas offcanvas-end menu-lateral" tabindex="-1" id="menuLateral"
+         aria-labelledby="menuLateralTitulo">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title h6 mb-0" id="menuLateralTitulo">
+                {% if usuario %}Olá, {{ usuario.nome.split(" ")[0] }}{% else %}🏃 SocorreAqui{% endif %}
+            </h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="menu-lateral-lista" aria-label="Menu principal">
+                <a href="/" class="menu-lateral-item"><span aria-hidden="true">🏠</span> Início</a>
+                <a href="/?explorar=1" class="menu-lateral-item"><span aria-hidden="true">🔎</span> Encontrar profissional</a>
+
+                {% if usuario %}
+                    {% if usuario.tipo == "profissional" %}
+                        <a href="/profissional/perfil/editar" class="menu-lateral-item"><span aria-hidden="true">🛠️</span> Meu perfil profissional</a>
+                        {% if usuario.perfil_profissional and usuario.perfil_profissional.aprovado %}
+                            <a href="/profissional/{{ usuario.perfil_profissional.id }}" class="menu-lateral-item"><span aria-hidden="true">⭐</span> Meu perfil público</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="/comecar?tipo=profissional" class="menu-lateral-item"><span aria-hidden="true">🛠️</span> Sou profissional</a>
+                    {% endif %}
+                    <a href="/minha-localizacao" class="menu-lateral-item"><span aria-hidden="true">⚙️</span> Meus dados</a>
+                    <a href="/indicar" class="menu-lateral-item"><span aria-hidden="true">🤝</span> Indicar profissional</a>
+                    <a href="/#como-funciona" class="menu-lateral-item"><span aria-hidden="true">ℹ️</span> Como funciona</a>
+                    {% if eh_admin_usuario %}
+                        <hr class="menu-lateral-divisor">
+                        <a href="/admin" class="menu-lateral-item"><span aria-hidden="true">🛡️</span> Administração</a>
+                    {% endif %}
+                    <hr class="menu-lateral-divisor">
+                    <a href="/logout" class="menu-lateral-item menu-lateral-item-sair"><span aria-hidden="true">🚪</span> Sair</a>
+                {% else %}
+                    <a href="/comecar?tipo=profissional" class="menu-lateral-item"><span aria-hidden="true">🛠️</span> Sou profissional</a>
+                    <a href="/#como-funciona" class="menu-lateral-item"><span aria-hidden="true">ℹ️</span> Como funciona</a>
+                    <hr class="menu-lateral-divisor">
+                    <div class="d-grid gap-2 mt-1">
+                        <a href="/comecar?tipo=cliente" class="btn btn-primary fw-semibold">Criar conta grátis</a>
+                        <a href="/login" class="btn btn-outline-primary">Entrar</a>
+                    </div>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+
+    <div class="container container-app pagina pb-5">
         {% block conteudo %}{% endblock %}
     </div>
 
     <footer class="site-footer-full">
-        <div class="container py-5">
+        <div class="container container-app py-5">
             <div class="row g-4">
                 <div class="col-6 col-md-3">
                     <h6 class="footer-title">🏃 SocorreAqui</h6>
-                    <p class="text-muted small mb-0">Conectando clientes a profissionais de confiança perto de você.</p>
+                    <p class="text-muted small mb-0">Conectando clientes a profissionais da sua região.</p>
                 </div>
                 <div class="col-6 col-md-3">
                     <h6 class="footer-title">Para clientes</h6>

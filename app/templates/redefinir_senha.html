@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Redefinir senha{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="landing-role-icon mx-auto mb-3">🔑</div>
+        <h3 class="mb-4 text-center">Redefinir senha</h3>
+
+        {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+        {% endif %}
+
+        {% if token %}
+        <form method="post" action="/redefinir-senha">
+            <input type="hidden" name="token" value="{{ token }}">
+            <div class="mb-3">
+                <label class="form-label">Senha nova</label>
+                <input type="password" name="senha" class="form-control" minlength="6" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirme a senha nova</label>
+                <input type="password" name="senha_confirmar" class="form-control" minlength="6" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Salvar nova senha</button>
+        </form>
+        {% else %}
+        <p class="text-center"><a href="/esqueci-senha">Pedir um novo link</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

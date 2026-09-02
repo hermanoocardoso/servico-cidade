@@ -95,6 +95,12 @@ class ProfessionalProfile(Base):
     atende_convenio = Column(Boolean, nullable=True)  # None = não informado
     convenios_aceitos = Column(String(255), nullable=True)
 
+    # Diferencia quem é prestador de serviço de quem é empresa/administração da
+    # plataforma (ex: a H2 Sistemas, desenvolvedora, cadastrada para testes).
+    # "professional" | "company" | "admin". Hoje só serve para NÃO dar destaque
+    # visual a quem administra a plataforma -- não altera busca nem filtro.
+    tipo_perfil = Column(String(20), nullable=False, default="professional")
+
     aprovado = Column(Boolean, default=False)  # aprovação manual pelo admin antes de aparecer no catálogo
     ativo = Column(Boolean, default=True)      # profissional pode "pausar" o perfil sem apagar
 
@@ -131,6 +137,23 @@ class ProfessionalProfile(Base):
         if not numero.startswith("55"):
             numero = "55" + numero
         return numero
+
+    @property
+    def tem_whatsapp(self) -> bool:
+        """Só existe botão de WhatsApp se houver algum número cadastrado --
+        nem whatsapp próprio, nem telefone do cadastro = não mostra o botão."""
+        return bool((self.whatsapp or "").strip() or (self.usuario.telefone or "").strip())
+
+    @property
+    def disponibilidade(self) -> str | None:
+        """Status real de disponibilidade do profissional.
+
+        AINDA NÃO EXISTE esse dado no cadastro -- por isso retorna sempre None,
+        e os templates simplesmente não mostram nenhum selo de disponibilidade.
+        Quando o campo passar a existir de verdade, basta esta property devolver
+        "agora" | "hoje" | "indisponivel" que a interface já está preparada.
+        """
+        return None
 
     @property
     def eh_medico(self) -> bool:
