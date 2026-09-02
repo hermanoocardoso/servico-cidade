@@ -25,6 +25,7 @@ CATEGORIAS_PADRAO = [
     ("Serralheiro", "Casa e Reformas"),
     ("Marceneiro", "Casa e Reformas"),
     ("Chaveiro", "Casa e Reformas"),
+    ("Gás", "Casa e Reformas"),
     ("Marido de aluguel", "Casa e Reformas"),
     ("Telhadista / Impermeabilização", "Casa e Reformas"),
 

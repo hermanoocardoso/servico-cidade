@@ -1654,6 +1654,23 @@ def _erro_editar_perfil(request, db, usuario, perfil, mensagem):
     )
 
 
+def _buscar_ou_criar_categoria(db, nome: str):
+    """Reaproveita a categoria se já existir uma com o mesmo nome
+    (ignorando maiúsculas/minúsculas), pra não criar duplicada."""
+    nome = nome.strip()
+    if not nome:
+        return None
+    categoria = db.query(models.Category).filter(
+        func.lower(models.Category.nome) == nome.lower()
+    ).first()
+    if not categoria:
+        categoria = models.Category(nome=nome)
+        db.add(categoria)
+        db.commit()
+        db.refresh(categoria)
+    return categoria
+
+
 def _aplicar_dados_perfil(
     perfil, db, *, cidade, bairro, endereco, atende_domicilio, descricao,
     valor_mao_de_obra, whatsapp, categorias_ids, outra_categoria,
@@ -1746,20 +1763,9 @@ def _aplicar_dados_perfil(
         models.Category.id.in_(categorias_ids)
     ).all()
 
-    outra_categoria = outra_categoria.strip()
-    if outra_categoria:
-        # Reaproveita a categoria se já existir uma com o mesmo nome
-        # (ignorando maiúsculas/minúsculas), pra não criar duplicada.
-        categoria_nova = db.query(models.Category).filter(
-            func.lower(models.Category.nome) == outra_categoria.lower()
-        ).first()
-        if not categoria_nova:
-            categoria_nova = models.Category(nome=outra_categoria)
-            db.add(categoria_nova)
-            db.commit()
-            db.refresh(categoria_nova)
-        if categoria_nova not in categorias_escolhidas:
-            categorias_escolhidas.append(categoria_nova)
+    categoria_nova = _buscar_ou_criar_categoria(db, outra_categoria)
+    if categoria_nova and categoria_nova not in categorias_escolhidas:
+        categorias_escolhidas.append(categoria_nova)
 
     perfil.categorias = categorias_escolhidas
 
@@ -1865,6 +1871,8 @@ def admin_painel(
         models.User.tipo == "cliente"
     ).order_by(models.User.criado_em.desc()).all()
 
+    categorias = db.query(models.Category).order_by(models.Category.nome).all()
+
     # --- Números do site ---------------------------------------------------
     sete_dias_atras = datetime.utcnow() - timedelta(days=7)
     total_avaliacoes = db.query(models.Review).count()
@@ -1908,10 +1916,30 @@ def admin_painel(
             "indicacoes_autenticadas": indicacoes_autenticadas,
             "telefones_ja_profissionais": telefones_ja_profissionais,
             "clientes": clientes,
+            "categorias": categorias,
             "emails_admin": ADMIN_EMAILS,
             "numeros": numeros,
         },
     )
+
+
+@app.post("/admin/categoria/nova")
+def admin_categoria_nova(
+    nome: str = Form(...),
+    grupo: str = Form(""),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    categoria = _buscar_ou_criar_categoria(db, nome)
+    grupo = grupo.strip()
+    if categoria and grupo and not categoria.grupo:
+        categoria.grupo = grupo
+        db.commit()
+
+    return RedirectResponse("/admin", status_code=303)
 
 
 @app.get("/admin/profissional/{perfil_id}/editar")
@@ -2275,6 +2303,31 @@ def admin_pausar(
     if perfil:
         perfil.ativo = not perfil.ativo
         db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.post("/admin/indicacao/{indicacao_id}/categoria")
+def admin_indicacao_categoria(
+    indicacao_id: int,
+    categoria_id: str = Form(""),
+    nova_categoria: str = Form(""),
+    db: Session = Depends(get_db),
+    usuario=Depends(auth.usuario_logado),
+):
+    if not eh_admin(usuario):
+        return RedirectResponse("/", status_code=303)
+
+    indicacao = db.query(models.Indicacao).filter(models.Indicacao.id == indicacao_id).first()
+    if indicacao:
+        if nova_categoria.strip():
+            categoria = _buscar_ou_criar_categoria(db, nova_categoria)
+            indicacao.categoria_id = categoria.id if categoria else None
+        elif categoria_id:
+            indicacao.categoria_id = int(categoria_id)
+        else:
+            indicacao.categoria_id = None
+        db.commit()
+
     return RedirectResponse("/admin", status_code=303)
 
 

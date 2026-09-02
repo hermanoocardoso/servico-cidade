@@ -56,6 +56,27 @@
 </div>
 
 <div class="card p-3 p-md-4 mb-4">
+    <h5 class="mb-3">Categorias de serviço</h5>
+    <form method="post" action="/admin/categoria/nova" class="row row-cols-1 row-cols-md-auto g-2 align-items-end mb-3">
+        <div class="col">
+            <label class="form-label small mb-1">Nova categoria</label>
+            <input type="text" name="nome" class="form-control form-control-sm" placeholder="Ex: Gás" required>
+        </div>
+        <div class="col">
+            <label class="form-label small mb-1">Grupo (opcional)</label>
+            <input type="text" name="grupo" class="form-control form-control-sm" placeholder="Ex: Casa e Reformas">
+        </div>
+        <div class="col">
+            <button class="btn btn-primary btn-sm">Adicionar categoria</button>
+        </div>
+    </form>
+    <details>
+        <summary class="ver-todas-categorias">Ver todas as categorias ({{ categorias|length }})</summary>
+        <p class="small text-muted mt-2 mb-0">{{ categorias|map(attribute='nome')|join(", ") }}</p>
+    </details>
+</div>
+
+<div class="card p-3 p-md-4 mb-4">
     <h5 class="mb-1">Imagens de perfil</h5>
     <p class="text-muted small mb-2">
         Logomarca precisa aparecer inteira; foto de pessoa fica melhor preenchendo
@@ -215,7 +236,17 @@
             <tr>
                 <td>{{ i.nome_profissional }}</td>
                 <td>{{ i.telefone_profissional }}</td>
-                <td>{{ i.categoria.nome if i.categoria else "-" }}</td>
+                <td>
+                    <form method="post" action="/admin/indicacao/{{ i.id }}/categoria" class="d-flex gap-1 align-items-center flex-nowrap">
+                        <select name="categoria_id" class="form-select form-select-sm" style="min-width:140px">
+                            <option value="">-- sem categoria --</option>
+                            {% for c in categorias %}
+                            <option value="{{ c.id }}" {% if i.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-outline-primary btn-sm" title="Salvar categoria">Salvar</button>
+                    </form>
+                </td>
                 <td>{{ i.cidade or "-" }}</td>
                 <td>{{ i.indicado_por.nome }}<br><span class="text-muted small">{{ i.indicado_por.telefone }}</span></td>
                 <td class="small text-muted">{{ i.observacao or "-" }}</td>
