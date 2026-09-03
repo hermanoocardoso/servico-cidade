@@ -50,6 +50,22 @@
 
             {# --- Desktop: o mesmo menu de sempre, só escondido no mobile --- #}
             <div class="d-none d-lg-flex gap-2 align-items-center ms-auto">
+                {# Sino de notificação do admin: fica escondido (d-none) até o JS
+                   confirmar via /admin/notificacoes/dados que quem está logado é
+                   admin -- assim funciona em qualquer página, mesmo que a rota não
+                   passe `usuario`/`eh_admin_usuario` pro template (a maioria não
+                   passa hoje). #}
+                <div class="dropdown d-none" id="blocoNotificacoesAdmin">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle position-relative" type="button"
+                            id="botaoNotificacoesAdmin" data-bs-toggle="dropdown" aria-expanded="false"
+                            title="Notificações de novo cadastro">
+                        🔔
+                        <span class="badge rounded-pill bg-danger notificacoes-badge d-none" id="badgeNotificacoesAdmin">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end notificacoes-lista" id="listaNotificacoesAdmin">
+                        <li><span class="dropdown-item-text text-muted small">Carregando...</span></li>
+                    </ul>
+                </div>
                 {% if usuario %}
                     <div class="dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
@@ -205,6 +221,82 @@
         } else {
             alvos.forEach(function (el) { el.classList.add("reveal-visivel"); });
         }
+    })();
+
+    // Sino de notificação do admin (novos cadastros, com data/hora). Só
+    // aparece se /admin/notificacoes/dados responder 200 -- quem não é
+    // admin recebe 403 e o bloco continua escondido.
+    (function () {
+        var bloco = document.getElementById("blocoNotificacoesAdmin");
+        var botao = document.getElementById("botaoNotificacoesAdmin");
+        var badge = document.getElementById("badgeNotificacoesAdmin");
+        var lista = document.getElementById("listaNotificacoesAdmin");
+        if (!bloco) return;
+
+        function montarItem(item) {
+            var li = document.createElement("li");
+            var span = document.createElement("span");
+            span.className = "dropdown-item-text notificacao-item" + (item.novo ? " notificacao-nova" : "");
+
+            var linhaNome = document.createElement("div");
+            var forte = document.createElement("strong");
+            forte.textContent = item.nome;
+            var tipo = document.createElement("span");
+            tipo.className = "badge bg-secondary ms-1";
+            tipo.textContent = item.tipo === "profissional" ? "profissional" : "cliente";
+            linhaNome.appendChild(forte);
+            linhaNome.appendChild(tipo);
+
+            var linhaData = document.createElement("div");
+            linhaData.className = "text-muted small";
+            linhaData.textContent = item.data_hora;
+
+            span.appendChild(linhaNome);
+            span.appendChild(linhaData);
+            li.appendChild(span);
+            return li;
+        }
+
+        function carregar() {
+            fetch("/admin/notificacoes/dados", { credentials: "same-origin" })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (dados) {
+                    if (!dados) return;
+                    bloco.classList.remove("d-none");
+
+                    if (dados.nao_lidas > 0) {
+                        badge.textContent = dados.nao_lidas > 9 ? "9+" : String(dados.nao_lidas);
+                        badge.classList.remove("d-none");
+                    } else {
+                        badge.classList.add("d-none");
+                    }
+
+                    lista.innerHTML = "";
+                    if (!dados.itens.length) {
+                        var vazio = document.createElement("li");
+                        var spanVazio = document.createElement("span");
+                        spanVazio.className = "dropdown-item-text text-muted small";
+                        spanVazio.textContent = "Nenhum cadastro ainda.";
+                        vazio.appendChild(spanVazio);
+                        lista.appendChild(vazio);
+                        return;
+                    }
+                    dados.itens.forEach(function (item) { lista.appendChild(montarItem(item)); });
+                })
+                .catch(function () {});
+        }
+
+        carregar();
+
+        // Marca como lidas um pouco depois de abrir (dá tempo da pessoa ver
+        // quais eram os novos antes do selo sumir).
+        botao.addEventListener("click", function () {
+            setTimeout(function () {
+                fetch("/admin/notificacoes/marcar-lidas", { method: "POST", credentials: "same-origin" })
+                    .then(function () { badge.classList.add("d-none"); })
+                    .catch(function () {});
+            }, 1500);
+        });
     })();
     </script>
 </body>

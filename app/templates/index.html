@@ -69,7 +69,7 @@
 {% endmacro %}
 
 {% macro url_ordenar(valor) -%}
-/?ordenar={{ valor }}{% if filtro_busca %}&busca={{ filtro_busca | urlencode }}{% endif %}{% if filtro_categoria %}&categoria={{ filtro_categoria }}{% endif %}{% if filtro_grupo %}&grupo={{ filtro_grupo | urlencode }}{% endif %}{% if filtro_cidade %}&cidade={{ filtro_cidade | urlencode }}{% endif %}
+/?ordenar={{ valor }}{% if filtro_busca %}&busca={{ filtro_busca | urlencode }}{% endif %}{% if filtro_categoria %}&categoria={{ filtro_categoria }}{% endif %}{% if filtro_grupo %}&grupo={{ filtro_grupo | urlencode }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado | urlencode }}{% endif %}{% if filtro_cidade %}&cidade={{ filtro_cidade | urlencode }}{% endif %}
 {%- endmacro %}
 
 {% block conteudo %}
@@ -83,10 +83,21 @@
             <input type="text" id="inputBuscaIndex" name="busca" value="{{ filtro_busca }}"
                    placeholder="O que você precisa? Ex: eletricista, encanador...">
         </div>
-        <div class="busca-combo-campo busca-combo-campo-local">
+        <div class="busca-combo-campo busca-combo-campo-estado">
             <span class="busca-combo-icone" aria-hidden="true">📍</span>
-            <label for="inputCidadeBusca" class="visually-hidden">Sua localização</label>
-            <input type="text" id="inputCidadeBusca" name="cidade" value="{{ filtro_cidade }}" placeholder="Sua localização">
+            <label for="selectEstadoBusca" class="visually-hidden">Estado</label>
+            <select id="selectEstadoBusca" name="estado" class="busca-combo-select">
+                <option value="">Estado</option>
+                {% for sigla, nome in ufs_brasil %}
+                <option value="{{ sigla }}" {% if filtro_estado == sigla %}selected{% endif %}>{{ sigla }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="busca-combo-campo busca-combo-campo-local">
+            <label for="selectCidadeBusca" class="visually-hidden">Cidade</label>
+            <select id="selectCidadeBusca" name="cidade" class="busca-combo-select" disabled>
+                <option value="">{% if filtro_estado %}Cidade{% else %}Selecione o estado{% endif %}</option>
+            </select>
         </div>
         <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarIndex">Buscar</button>
     </form>
@@ -109,6 +120,7 @@
     <p id="checkinStatus" class="busca-local-status" role="status"></p>
 </section>
 
+<script src="/static/js/estado-cidade.js"></script>
 <script>
 (function () {
     var form = document.getElementById("formBuscaIndex");
@@ -118,9 +130,15 @@
         b.textContent = "Procurando...";
     });
 
+    var cascata = EstadoCidade.montar({
+        estadoSelect: document.getElementById("selectEstadoBusca"),
+        cidadeSelect: document.getElementById("selectCidadeBusca"),
+        cidadeInicial: {{ filtro_cidade | tojson }},
+        placeholderCidade: "Cidade",
+    });
+
     var btn = document.getElementById("btnCheckin");
     var status = document.getElementById("checkinStatus");
-    var inputCidade = document.getElementById("inputCidadeBusca");
 
     // automatico=true quando é pedido sozinho ao abrir a página (sem clique
     // do usuário) -- nesse caso fica quieto se der erro/negar, já que ele
@@ -137,7 +155,7 @@
             function (pos) {
                 var lat = pos.coords.latitude, lon = pos.coords.longitude;
                 var precisao = Math.round(pos.coords.accuracy || 0);
-                status.textContent = "Identificando o bairro...";
+                status.textContent = "Identificando a cidade...";
                 fetch(
                     "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat +
                     "&lon=" + lon + "&zoom=16&addressdetails=1&accept-language=pt-BR"
@@ -145,23 +163,15 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         var end = data.address || {};
-                        // A cidade é o dado mais confiável pra achar profissionais (nem
-                        // todo mundo cadastra o bairro certinho) — o bairro só entra como
-                        // informação extra, mostrada mas não usada sozinha na busca.
                         var cidade = end.city || end.town || end.municipality || "";
-                        var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
+                        var uf = EstadoCidade.ufPorNomeEstado(end.state || "");
                         btn.disabled = false;
-                        if (cidade || bairro) {
-                            var local = cidade || bairro;
-                            inputCidade.value = local;
-                            var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
+                        if (cidade && uf) {
                             // Não redireciona sozinho: geolocalização de navegador (sem GPS
                             // de verdade, como em notebook) pode errar bastante. Só preenche
-                            // o campo e pede confirmação de um clique antes de buscar.
-                            // Mostra a coordenada crua + link pro mapa: se o pino aparecer no
-                            // lugar errado, o problema é a localização do aparelho, não o site.
+                            // os campos e pede confirmação de um clique antes de buscar.
                             var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-                            status.innerHTML = "Você está em <strong>" + onde + "</strong> — " +
+                            status.innerHTML = "Você está em <strong>" + cidade + "/" + uf + "</strong> — " +
                                 '<a href="#" id="linkConfirmarCheckin" class="fw-semibold">buscar profissionais aqui</a>' +
                                 ".<br>" +
                                 '<span class="text-muted">Coordenada recebida do seu aparelho: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
@@ -169,18 +179,17 @@
                                 ' — <a href="' + linkMapa + '" target="_blank" rel="noopener">ver no mapa</a>.</span>';
                             document.getElementById("linkConfirmarCheckin").addEventListener("click", function (e) {
                                 e.preventDefault();
-                                inputCidade.value = local;
-                                inputCidade.form.submit();
+                                cascata.definir(uf, cidade).then(function () { form.submit(); });
                             });
                         } else if (!automatico) {
-                            status.textContent = "Não consegui identificar sua cidade. Digite manualmente acima.";
+                            status.textContent = "Não consegui identificar sua cidade. Selecione manualmente acima.";
                         } else {
                             status.textContent = "";
                         }
                     })
                     .catch(function () {
                         btn.disabled = false;
-                        status.textContent = automatico ? "" : "Não consegui identificar seu bairro agora. Digite manualmente acima.";
+                        status.textContent = automatico ? "" : "Não consegui identificar sua localização agora. Selecione manualmente acima.";
                     });
             },
             function (erro) {

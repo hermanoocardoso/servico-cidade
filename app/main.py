@@ -20,7 +20,7 @@ import unicodedata
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
-from fastapi.responses import RedirectResponse, PlainTextResponse, Response
+from fastapi.responses import RedirectResponse, PlainTextResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
@@ -30,6 +30,7 @@ from sqlalchemy import or_, func
 
 from app.database import Base, engine, get_db
 from app import models, auth, storage, email_utils
+from app.localidades import UFS_BRASIL
 from app.oauth import oauth, google_oauth_habilitado
 from app.seed import rodar_seed
 
@@ -75,6 +76,35 @@ def _garantir_colunas_novas():
                 "ALTER TABLE professional_profiles "
                 "ADD COLUMN tipo_perfil VARCHAR(20) NOT NULL DEFAULT 'professional'"
             ))
+    if "estado" not in colunas:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE professional_profiles ADD COLUMN estado VARCHAR(2)"))
+            # Todo cadastro anterior a esse campo é de Macaé/RJ (única cidade
+            # atendida até aqui) -- preenche pra não deixar profissional
+            # já aprovado sumindo do filtro por estado quando ele existir.
+            conn.execute(text(
+                "UPDATE professional_profiles SET estado = 'RJ' WHERE cidade IS NOT NULL AND cidade != ''"
+            ))
+
+    colunas_users = {c["name"] for c in inspetor.get_columns("users")}
+    if "estado" not in colunas_users:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN estado VARCHAR(2)"))
+            conn.execute(text(
+                "UPDATE users SET estado = 'RJ' WHERE cidade IS NOT NULL AND cidade != ''"
+            ))
+    if "notificacoes_vistas_em" not in colunas_users:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN notificacoes_vistas_em TIMESTAMP"))
+
+    if "indicacoes" in inspetor.get_table_names():
+        colunas_indicacoes = {c["name"] for c in inspetor.get_columns("indicacoes")}
+        if "estado" not in colunas_indicacoes:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE indicacoes ADD COLUMN estado VARCHAR(2)"))
+                conn.execute(text(
+                    "UPDATE indicacoes SET estado = 'RJ' WHERE cidade IS NOT NULL AND cidade != ''"
+                ))
 
 
 _garantir_colunas_novas()
@@ -219,6 +249,7 @@ with open(os.path.join(BASE_DIR, "static", "style.css"), "rb") as _f:
 templates.env.globals["css_version"] = CSS_VERSION
 templates.env.globals["ano_atual"] = datetime.now().year
 templates.env.globals["rodando_em_producao"] = RODANDO_EM_PRODUCAO
+templates.env.globals["ufs_brasil"] = UFS_BRASIL
 
 
 def _tojson(valor):
@@ -380,6 +411,7 @@ CATEGORIA_EMOJIS = {
     "Chaveiro": "🔑",
     "Marido de aluguel": "🔧",
     "Telhadista / Impermeabilização": "🏚️",
+    "Gás": "🔥",
 
     "Diarista / Faxina": "🧹",
     "Dedetização": "🐜",
@@ -430,6 +462,16 @@ CATEGORIA_EMOJIS = {
     "Frete / Mudança": "🚚",
     "Motoboy / Entregador": "🛵",
     "Motorista Particular / Uber": "🚕",
+
+    # Categorias criadas pelo admin depois da lista original acima (via painel
+    # /admin) -- sem ícone próprio elas caem no genérico 🔧 e destoam das
+    # demais no menu/grade do catálogo, por isso ganham entrada aqui também.
+    "Gás encanado": "🛢️",
+    "Blogueiro(a)": "✍️",
+    "Cesta de Café da Manhã": "🧺",
+    "Serviços domésticoa": "🏡",  # nome como está cadastrado hoje (tem um erro de digitação -- ver painel admin)
+    "Serviços Técnicos": "🧰",
+    "Técnico em TV": "📺",
 }
 templates.env.globals["categoria_emoji"] = lambda nome: CATEGORIA_EMOJIS.get(nome, "🔧")
 
@@ -444,8 +486,10 @@ GRUPO_EMOJIS = {
     "Eventos": "🎉",
     "Aulas e Consultoria": "📚",
     "Transporte": "🚚",
+    "Outros": "🗂️",  # categoria criada sem grupo (ex: "Outro" no cadastro) cai aqui
 }
 templates.env.globals["grupo_emoji"] = lambda nome: GRUPO_EMOJIS.get(nome, "🔧")
+templates.env.globals["categoria_tem_icone"] = lambda nome: nome in CATEGORIA_EMOJIS
 
 # Categorias mostradas em destaque na home de quem não está logado —
 # curadoria manual das mais buscadas, pra não sobrecarregar a tela
@@ -525,6 +569,36 @@ def _slugify(texto: str) -> str:
 # Catálogo (página inicial)
 # ---------------------------------------------------------------------------
 
+ULTIMOS_PROFISSIONAIS_LIMITE = 12
+
+
+@app.get("/api/ultimos-profissionais")
+def api_ultimos_profissionais(db: Session = Depends(get_db)):
+    """Últimos profissionais aprovados, pra faixa decorativa que passa
+    devagar no fundo da home (ver landing.html) -- só dado público que já
+    aparece no catálogo normalmente, nada sensível."""
+    profissionais = (
+        db.query(models.ProfessionalProfile)
+        .filter(
+            models.ProfessionalProfile.aprovado == True,  # noqa: E712
+            models.ProfessionalProfile.ativo == True,  # noqa: E712
+            models.ProfessionalProfile.usuario.has(models.User.tipo == "profissional"),
+        )
+        .order_by(models.ProfessionalProfile.criado_em.desc())
+        .limit(ULTIMOS_PROFISSIONAIS_LIMITE)
+        .all()
+    )
+    return [
+        {
+            "nome": p.usuario.nome,
+            "cidade": p.cidade or "",
+            "categoria": p.categorias[0].nome if p.categorias else "",
+            "foto_url": p.foto_url or "",
+        }
+        for p in profissionais
+    ]
+
+
 def cidades_mais_ativas(db: Session, limite: int = 6) -> list[str]:
     """Cidades com mais profissionais cadastrados, pra oferecer como atalho
     de clique — pra quem não quer (ou não confia n)a localização automática
@@ -547,9 +621,24 @@ def cidades_mais_ativas(db: Session, limite: int = 6) -> list[str]:
     return [linha[0] for linha in linhas]
 
 
+def _categorias_agrupadas(db: Session):
+    """Categorias organizadas em grupos amplos, na ordem de GRUPO_EMOJIS
+    (e alfabética dentro de cada grupo) -- mesma organização usada no mega
+    menu da home, no checklist de categorias do profissional e no painel
+    admin, pra tudo ficar consistente em vez de listas soltas e desalinhadas
+    entre uma tela e outra. Categoria sem grupo definido (ex: criada via
+    "Outro" no perfil) cai num grupo "Outros" no final."""
+    categorias = db.query(models.Category).order_by(models.Category.nome).all()
+    por_grupo = {}
+    for c in categorias:
+        por_grupo.setdefault(c.grupo or "Outros", []).append(c)
+    ordem_grupos = list(GRUPO_EMOJIS.keys()) + [g for g in por_grupo if g not in GRUPO_EMOJIS]
+    return [(g, por_grupo[g]) for g in ordem_grupos if g in por_grupo]
+
+
 def _resultados_catalogo(
     request, db, usuario, *,
-    categoria=None, grupo=None, cidade=None, busca=None, ordenar="avaliacao",
+    categoria=None, grupo=None, estado=None, cidade=None, busca=None, ordenar="avaliacao",
     titulo_pagina=None, meta_descricao_pagina=None, h1_pagina=None,
 ):
     """Monta a resposta da tela de resultados (index.html) -- extraído do
@@ -578,6 +667,9 @@ def _resultados_catalogo(
         query = query.filter(models.ProfessionalProfile.categorias.any(models.Category.id == categoria_id))
     elif grupo:
         query = query.filter(models.ProfessionalProfile.categorias.any(models.Category.grupo == grupo))
+
+    if estado:
+        query = query.filter(models.ProfessionalProfile.estado == estado.strip().upper())
 
     if cidade:
         # O campo aceita cidade OU bairro (o rótulo já diz "Cidade / bairro"),
@@ -611,7 +703,7 @@ def _resultados_catalogo(
     # primeiro — assim é mais fácil achar quem atende perto de você.
     profissionais_por_cidade = None
     cidade_usuario = ""
-    if not categoria_id and not grupo and not cidade and not busca:
+    if not categoria_id and not grupo and not estado and not cidade and not busca:
         grupos = {}
         for p in profissionais:
             chave = (p.cidade or "").strip() or "Cidade não informada"
@@ -631,15 +723,7 @@ def _resultados_catalogo(
         profissionais_por_cidade = [(nome, grupos[nome]) for nome in sorted(grupos, key=ordem_cidade)]
 
     categorias = db.query(models.Category).order_by(models.Category.nome).all()
-
-    # Organiza as categorias em grupos amplos pro menu (estilo "mega menu"):
-    # segue a ordem de GRUPO_EMOJIS, e qualquer categoria sem grupo definido
-    # (ex: criada via "Outro" no perfil) cai num grupo "Outros" no final.
-    por_grupo = {}
-    for c in categorias:
-        por_grupo.setdefault(c.grupo or "Outros", []).append(c)
-    ordem_grupos = list(GRUPO_EMOJIS.keys()) + [g for g in por_grupo if g not in GRUPO_EMOJIS]
-    categorias_por_grupo = [(g, por_grupo[g]) for g in ordem_grupos if g in por_grupo]
+    categorias_por_grupo = _categorias_agrupadas(db)
 
     return templates.TemplateResponse(
         "index.html",
@@ -653,6 +737,7 @@ def _resultados_catalogo(
             "categorias_por_grupo": categorias_por_grupo,
             "filtro_categoria": categoria_id,
             "filtro_grupo": grupo or "",
+            "filtro_estado": estado or "",
             "filtro_cidade": cidade or "",
             "filtro_busca": busca or "",
             "ordenar": ordenar,
@@ -671,6 +756,7 @@ def catalogo(
     request: Request,
     categoria: str | None = None,
     grupo: str | None = None,
+    estado: str | None = None,
     cidade: str | None = None,
     busca: str | None = None,
     explorar: str | None = None,
@@ -683,7 +769,7 @@ def catalogo(
     # sem nenhum filtro ainda cai na home de apresentação; qualquer busca,
     # filtro ou clique em "ver todas as categorias" (explorar) já mostra
     # os resultados de verdade.
-    tem_filtro = bool(categoria or grupo or cidade or busca or explorar)
+    tem_filtro = bool(categoria or grupo or estado or cidade or busca or explorar)
 
     if not usuario and not tem_filtro:
         categorias_destaque = (
@@ -736,7 +822,7 @@ def catalogo(
 
     return _resultados_catalogo(
         request, db, usuario,
-        categoria=categoria, grupo=grupo, cidade=cidade, busca=busca, ordenar=ordenar,
+        categoria=categoria, grupo=grupo, estado=estado, cidade=cidade, busca=busca, ordenar=ordenar,
     )
 
 
@@ -1531,10 +1617,12 @@ def form_indicar(
     if not usuario:
         return RedirectResponse("/login", status_code=303)
 
-    categorias = db.query(models.Category).order_by(models.Category.nome).all()
     return templates.TemplateResponse(
         "indicar.html",
-        {"request": request, "usuario": usuario, "categorias": categorias, "enviado": False},
+        {
+            "request": request, "usuario": usuario,
+            "categorias_por_grupo": _categorias_agrupadas(db), "enviado": False,
+        },
     )
 
 
@@ -1544,6 +1632,7 @@ def indicar(
     nome_profissional: str = Form(...),
     telefone_profissional: str = Form(...),
     categoria_id: str = Form(""),
+    estado: str = Form(""),
     cidade: str = Form(""),
     observacao: str = Form(""),
     db: Session = Depends(get_db),
@@ -1554,6 +1643,7 @@ def indicar(
 
     nome_profissional = nome_profissional.strip()
     telefone_profissional = telefone_profissional.strip()
+    estado = estado.strip().upper()
     cidade = cidade.strip()
 
     try:
@@ -1562,16 +1652,17 @@ def indicar(
         categoria_id_int = None
 
     def erro(mensagem):
-        categorias = db.query(models.Category).order_by(models.Category.nome).all()
         return templates.TemplateResponse(
             "indicar.html",
             {
-                "request": request, "usuario": usuario, "categorias": categorias, "enviado": False,
+                "request": request, "usuario": usuario,
+                "categorias_por_grupo": _categorias_agrupadas(db), "enviado": False,
                 "erro": mensagem,
                 "valores": {
                     "nome_profissional": nome_profissional,
                     "telefone_profissional": telefone_profissional,
                     "categoria_id": categoria_id,
+                    "estado": estado,
                     "cidade": cidade,
                 },
             },
@@ -1584,24 +1675,26 @@ def indicar(
         return erro("Preencha o nome e o telefone do profissional.")
     if not categoria_id_int:
         return erro("Selecione a categoria do profissional.")
+    if not estado:
+        return erro("Selecione o estado do profissional.")
     if not cidade:
-        return erro("Informe a cidade/bairro do profissional.")
+        return erro("Informe a cidade do profissional.")
 
     indicacao = models.Indicacao(
         indicado_por_id=usuario.id,
         nome_profissional=nome_profissional,
         telefone_profissional=telefone_profissional,
         categoria_id=categoria_id_int,
+        estado=estado,
         cidade=cidade,
         observacao=observacao.strip() or None,
     )
     db.add(indicacao)
     db.commit()
 
-    categorias = db.query(models.Category).order_by(models.Category.nome).all()
     return templates.TemplateResponse(
         "indicar.html",
-        {"request": request, "usuario": usuario, "categorias": categorias, "enviado": True},
+        {"request": request, "usuario": usuario, "enviado": True},
     )
 
 
@@ -1618,7 +1711,6 @@ def form_editar_perfil(
     if not usuario or usuario.tipo != "profissional":
         return RedirectResponse("/login", status_code=303)
 
-    categorias = db.query(models.Category).order_by(models.Category.nome).all()
     perfil = usuario.perfil_profissional
     categorias_selecionadas = {c.id for c in perfil.categorias} if perfil else set()
 
@@ -1628,7 +1720,7 @@ def form_editar_perfil(
             "request": request,
             "usuario": usuario,
             "perfil": perfil,
-            "categorias": categorias,
+            "categorias_por_grupo": _categorias_agrupadas(db),
             "categorias_selecionadas": categorias_selecionadas,
             "especialidades_medicas": ESPECIALIDADES_MEDICAS,
             "erro": None,
@@ -1638,7 +1730,6 @@ def form_editar_perfil(
 
 def _erro_editar_perfil(request, db, usuario, perfil, mensagem):
     """Reexibe o formulário de editar perfil com uma mensagem de erro."""
-    categorias = db.query(models.Category).order_by(models.Category.nome).all()
     categorias_selecionadas = {c.id for c in perfil.categorias} if perfil else set()
     return templates.TemplateResponse(
         "editar_perfil.html",
@@ -1646,7 +1737,7 @@ def _erro_editar_perfil(request, db, usuario, perfil, mensagem):
             "request": request,
             "usuario": usuario,
             "perfil": perfil,
-            "categorias": categorias,
+            "categorias_por_grupo": _categorias_agrupadas(db),
             "categorias_selecionadas": categorias_selecionadas,
             "especialidades_medicas": ESPECIALIDADES_MEDICAS,
             "erro": mensagem,
@@ -1672,7 +1763,7 @@ def _buscar_ou_criar_categoria(db, nome: str):
 
 
 def _aplicar_dados_perfil(
-    perfil, db, *, cidade, bairro, endereco, atende_domicilio, descricao,
+    perfil, db, *, estado, cidade, bairro, endereco, atende_domicilio, descricao,
     valor_mao_de_obra, whatsapp, categorias_ids, outra_categoria,
     crm, especialidade_medica, especialidade_medica_outra,
     atende_convenio, convenios_aceitos, foto,
@@ -1691,12 +1782,15 @@ def _aplicar_dados_perfil(
     coleta foto nem bairro) e ficariam impossíveis de editar aos poucos se
     cada correção precisasse vir com o cadastro inteiro completo.
     """
+    estado = (estado or "").strip().upper()
     cidade = cidade.strip()
     bairro = bairro.strip()
     whatsapp = whatsapp.strip()
 
     if not cidade:
         return "Cidade é obrigatória."
+    if exigir_completo and not estado:
+        return "Estado é obrigatório."
     if exigir_completo:
         if not bairro:
             return "Bairro é obrigatório."
@@ -1733,6 +1827,7 @@ def _aplicar_dados_perfil(
     # sozinha, porque recortada ela apareceria vazada de qualquer jeito.
     perfil.foto_e_logo = bool(foto_e_logo) or foto_nova_transparente
 
+    perfil.estado = estado or None
     perfil.cidade = cidade
     perfil.bairro = bairro
     perfil.endereco = endereco.strip()
@@ -1777,6 +1872,7 @@ def _aplicar_dados_perfil(
 @app.post("/profissional/perfil/editar")
 def salvar_perfil(
     request: Request,
+    estado: str = Form(""),
     cidade: str = Form(...),
     bairro: str = Form(""),
     endereco: str = Form(""),
@@ -1805,7 +1901,7 @@ def salvar_perfil(
         db.add(perfil)
 
     erro_msg = _aplicar_dados_perfil(
-        perfil, db, cidade=cidade, bairro=bairro, endereco=endereco,
+        perfil, db, estado=estado, cidade=cidade, bairro=bairro, endereco=endereco,
         atende_domicilio=atende_domicilio, descricao=descricao,
         valor_mao_de_obra=valor_mao_de_obra, whatsapp=whatsapp,
         categorias_ids=categorias_ids, outra_categoria=outra_categoria,
@@ -1870,9 +1966,13 @@ def admin_painel(
     clientes = db.query(models.User).filter(
         models.User.tipo == "cliente"
     ).order_by(models.User.criado_em.desc()).all()
+    # Contas admin aparecem primeiro na lista, independente da data de
+    # cadastro (sort estável preserva a ordem por criado_em dentro de cada grupo).
+    clientes.sort(key=lambda c: c.email not in ADMIN_EMAILS)
 
     categorias = db.query(models.Category).order_by(models.Category.nome).all()
     grupos_categorias = sorted({c.grupo for c in categorias if c.grupo})
+    categorias_por_grupo = _categorias_agrupadas(db)
 
     # --- Números do site ---------------------------------------------------
     sete_dias_atras = datetime.utcnow() - timedelta(days=7)
@@ -1918,11 +2018,54 @@ def admin_painel(
             "telefones_ja_profissionais": telefones_ja_profissionais,
             "clientes": clientes,
             "categorias": categorias,
+            "categorias_por_grupo": categorias_por_grupo,
             "grupos_categorias": grupos_categorias,
             "emails_admin": ADMIN_EMAILS,
             "numeros": numeros,
         },
     )
+
+
+NOTIFICACOES_ADMIN_LIMITE = 20
+
+
+@app.get("/admin/notificacoes/dados")
+def admin_notificacoes_dados(db: Session = Depends(get_db), usuario=Depends(auth.usuario_logado)):
+    """Dados pro sino de notificação no menu: últimos cadastros (cliente ou
+    profissional), com "novo" = criado depois da última vez que esse admin
+    abriu o sino. Consultado via fetch() pelo JS do base.html -- assim o
+    sino funciona em toda página, sem precisar que cada rota do site passe
+    manualmente `usuario`/`eh_admin_usuario` pro template (a maioria não
+    passa hoje)."""
+    if not eh_admin(usuario):
+        return JSONResponse({"detail": "não autorizado"}, status_code=403)
+
+    visto_em = usuario.notificacoes_vistas_em
+    recentes = (
+        db.query(models.User)
+        .order_by(models.User.criado_em.desc())
+        .limit(NOTIFICACOES_ADMIN_LIMITE)
+        .all()
+    )
+    itens = [
+        {
+            "nome": u.nome,
+            "tipo": u.tipo,
+            "data_hora": u.criado_em.strftime("%d/%m/%Y %H:%M") if u.criado_em else "",
+            "novo": bool(u.criado_em and (visto_em is None or u.criado_em > visto_em)),
+        }
+        for u in recentes
+    ]
+    return {"nao_lidas": sum(1 for item in itens if item["novo"]), "itens": itens}
+
+
+@app.post("/admin/notificacoes/marcar-lidas")
+def admin_notificacoes_marcar_lidas(db: Session = Depends(get_db), usuario=Depends(auth.usuario_logado)):
+    if not eh_admin(usuario):
+        return JSONResponse({"detail": "não autorizado"}, status_code=403)
+    usuario.notificacoes_vistas_em = datetime.utcnow()
+    db.commit()
+    return {"ok": True}
 
 
 @app.post("/admin/categoria/nova")
@@ -1990,7 +2133,6 @@ def admin_form_editar_perfil(
     if not perfil:
         return RedirectResponse("/admin", status_code=303)
 
-    categorias = db.query(models.Category).order_by(models.Category.nome).all()
     categorias_selecionadas = {c.id for c in perfil.categorias}
 
     return templates.TemplateResponse(
@@ -1999,7 +2141,7 @@ def admin_form_editar_perfil(
             "request": request,
             "usuario": usuario,
             "perfil": perfil,
-            "categorias": categorias,
+            "categorias_por_grupo": _categorias_agrupadas(db),
             "categorias_selecionadas": categorias_selecionadas,
             "especialidades_medicas": ESPECIALIDADES_MEDICAS,
             "erro": None,
@@ -2013,6 +2155,7 @@ def admin_form_editar_perfil(
 def admin_salvar_perfil(
     perfil_id: int,
     request: Request,
+    estado: str = Form(""),
     cidade: str = Form(...),
     bairro: str = Form(""),
     endereco: str = Form(""),
@@ -2046,7 +2189,7 @@ def admin_salvar_perfil(
         perfil.tipo_perfil = tipo_perfil
 
     erro_msg = _aplicar_dados_perfil(
-        perfil, db, cidade=cidade, bairro=bairro, endereco=endereco,
+        perfil, db, estado=estado, cidade=cidade, bairro=bairro, endereco=endereco,
         atende_domicilio=atende_domicilio, descricao=descricao,
         valor_mao_de_obra=valor_mao_de_obra, whatsapp=whatsapp,
         categorias_ids=categorias_ids, outra_categoria=outra_categoria,
@@ -2057,7 +2200,6 @@ def admin_salvar_perfil(
         foto=foto, exigir_completo=False,
     )
     if erro_msg:
-        categorias = db.query(models.Category).order_by(models.Category.nome).all()
         categorias_selecionadas = {c.id for c in perfil.categorias}
         return templates.TemplateResponse(
             "editar_perfil.html",
@@ -2065,7 +2207,7 @@ def admin_salvar_perfil(
                 "request": request,
                 "usuario": usuario,
                 "perfil": perfil,
-                "categorias": categorias,
+                "categorias_por_grupo": _categorias_agrupadas(db),
                 "categorias_selecionadas": categorias_selecionadas,
                 "especialidades_medicas": ESPECIALIDADES_MEDICAS,
                 "erro": erro_msg,
@@ -2409,6 +2551,7 @@ def admin_indicacao_autenticar(
             telefone=indicacao.telefone_profissional,
             senha_hash=None,
             tipo="profissional",
+            estado=indicacao.estado,
             cidade=indicacao.cidade,
             email_verificado=False,
             ativo=True,
@@ -2419,6 +2562,7 @@ def admin_indicacao_autenticar(
 
         perfil = models.ProfessionalProfile(
             usuario_id=novo_usuario.id,
+            estado=indicacao.estado,
             cidade=indicacao.cidade or "",
             aprovado=True,
             ativo=True,

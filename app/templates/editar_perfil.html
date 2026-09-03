@@ -47,24 +47,40 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Categorias de serviço que você presta</label>
-        <div class="row">
-            {% for c in categorias %}
-            <div class="col-md-4">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="categorias_ids" value="{{ c.id }}"
-                        id="cat{{ c.id }}" {% if c.id in categorias_selecionadas %}checked{% endif %}
-                        {% if c.nome == "Médico" %}data-categoria-medico="1" onchange="toggleInfoMedica()"{% endif %}>
-                    <label class="form-check-label" for="cat{{ c.id }}">{{ c.nome }}</label>
+        <label class="form-label d-block">Categorias de serviço que você presta</label>
+        {# Agrupado do mesmo jeito que o menu "Ver todas as categorias" da home
+           (categorias_por_grupo) -- alfabético dentro de cada grupo, pra achar
+           rápido em vez de vasculhar uma lista única com todas as ~50. #}
+        {% for grupo_nome, cats in categorias_por_grupo %}
+        <div class="categorias-perfil-grupo">
+            <h6 class="categorias-perfil-titulo">
+                <span aria-hidden="true">{{ grupo_emoji(grupo_nome) }}</span> {{ grupo_nome }}
+            </h6>
+            <div class="row">
+                {% for c in cats %}
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="categorias_ids" value="{{ c.id }}"
+                            id="cat{{ c.id }}" {% if c.id in categorias_selecionadas %}checked{% endif %}
+                            {% if c.nome == "Médico" %}data-categoria-medico="1" onchange="toggleInfoMedica()"{% endif %}>
+                        <label class="form-check-label" for="cat{{ c.id }}">
+                            <span aria-hidden="true">{{ categoria_emoji(c.nome) }}</span> {{ c.nome }}
+                        </label>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-            <div class="col-md-4">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="catOutro"
-                        onchange="document.getElementById('outraCategoriaWrap').style.display = this.checked ? 'block' : 'none';
-                                  if (!this.checked) { document.getElementById('outraCategoriaInput').value = ''; }">
-                    <label class="form-check-label" for="catOutro">Outro</label>
+        </div>
+        {% endfor %}
+        <div class="categorias-perfil-grupo">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="catOutro"
+                            onchange="document.getElementById('outraCategoriaWrap').style.display = this.checked ? 'block' : 'none';
+                                      if (!this.checked) { document.getElementById('outraCategoriaInput').value = ''; }">
+                        <label class="form-check-label" for="catOutro">Outro</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -132,13 +148,25 @@
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label class="form-label">Cidade</label>
-            <input type="text" name="cidade" class="form-control" value="{{ perfil.cidade if perfil else '' }}" required>
+            <label class="form-label" for="campoEstadoPerfil">Estado</label>
+            <select name="estado" id="campoEstadoPerfil" class="form-select" required>
+                <option value="">UF</option>
+                {% for sigla, nome in ufs_brasil %}
+                <option value="{{ sigla }}" {% if perfil and perfil.estado == sigla %}selected{% endif %}>{{ sigla }} — {{ nome }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="col-md-6 mb-3">
-            <label class="form-label">Bairro / região que atende</label>
-            <input type="text" name="bairro" class="form-control" value="{{ (perfil.bairro or '') if perfil else '' }}" {% if not admin_editando %}required{% endif %}>
+            <label class="form-label" for="campoCidadePerfil">Cidade</label>
+            <select name="cidade" id="campoCidadePerfil" class="form-select" required disabled>
+                <option value="">Selecione o estado primeiro</option>
+            </select>
         </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Bairro / região que atende</label>
+        <input type="text" name="bairro" class="form-control" value="{{ (perfil.bairro or '') if perfil else '' }}" {% if not admin_editando %}required{% endif %}>
     </div>
 
     <div class="mb-3">
@@ -211,5 +239,13 @@ function toggleInfoMedica() {
     document.getElementById('infoMedicaWrap').style.display = marcado ? 'block' : 'none';
 }
 document.addEventListener('DOMContentLoaded', toggleInfoMedica);
+</script>
+<script src="/static/js/estado-cidade.js"></script>
+<script>
+EstadoCidade.montar({
+    estadoSelect: document.getElementById("campoEstadoPerfil"),
+    cidadeSelect: document.getElementById("campoCidadePerfil"),
+    cidadeInicial: {{ (perfil.cidade if perfil else "") | tojson }},
+});
 </script>
 {% endblock %}

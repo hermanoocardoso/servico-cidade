@@ -83,46 +83,68 @@
     </form>
     <details>
         <summary class="ver-todas-categorias">Editar categorias existentes ({{ categorias|length }})</summary>
-        <div class="table-responsive mt-2">
+        <div class="mt-2">
         {% for c in categorias %}
         <form id="formCategoria{{ c.id }}" method="post" action="/admin/categoria/{{ c.id }}/editar" class="d-none"></form>
         {% endfor %}
-        <table class="table table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Grupo</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for c in categorias %}
-                <tr>
-                    <td>
-                        <input form="formCategoria{{ c.id }}" type="text" name="nome" value="{{ c.nome }}" class="form-control form-control-sm" required>
-                    </td>
-                    <td>
-                        <select form="formCategoria{{ c.id }}" name="grupo" id="selectGrupoCategoria{{ c.id }}" class="form-select form-select-sm"
-                                onchange="document.getElementById('novoGrupoWrap{{ c.id }}').style.display = (this.value === '_novo') ? 'block' : 'none';">
-                            <option value="">-- sem grupo --</option>
-                            {% for g in grupos_categorias %}
-                            <option value="{{ g }}" {% if c.grupo == g %}selected{% endif %}>{{ g }}</option>
-                            {% endfor %}
-                            <option value="_novo" {% if c.grupo and c.grupo not in grupos_categorias %}selected{% endif %}>+ Novo grupo...</option>
-                        </select>
-                        <input form="formCategoria{{ c.id }}" type="text" id="novoGrupoWrap{{ c.id }}" name="novo_grupo"
-                               class="form-control form-control-sm mt-1"
-                               style="display:{{ 'block' if c.grupo and c.grupo not in grupos_categorias else 'none' }};"
-                               placeholder="Nome do novo grupo"
-                               value="{{ c.grupo if c.grupo and c.grupo not in grupos_categorias else '' }}">
-                    </td>
-                    <td class="text-nowrap">
-                        <button form="formCategoria{{ c.id }}" class="btn btn-outline-primary btn-sm">Salvar</button>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        {# Mesmo agrupamento usado no menu da home e no checklist do
+           profissional (categorias_por_grupo) -- assim dá pra ver de cara se
+           alguma categoria está no grupo errado ou sem ícone próprio (aviso
+           "genérico" abaixo), em vez de uma lista única de ~50 linhas. #}
+        {% for grupo_nome, cats in categorias_por_grupo %}
+        <div class="categorias-admin-grupo">
+            <h6 class="categorias-admin-titulo">
+                <span aria-hidden="true">{{ grupo_emoji(grupo_nome) }}</span> {{ grupo_nome }}
+                <span class="text-muted fw-normal">({{ cats|length }})</span>
+            </h6>
+            <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:2.5rem"></th>
+                        <th>Nome</th>
+                        <th>Grupo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in cats %}
+                    <tr>
+                        <td class="text-center fs-5"
+                            title="{% if not categoria_tem_icone(c.nome) %}Sem ícone próprio -- usando o genérico 🔧{% endif %}">
+                            {{ categoria_emoji(c.nome) }}
+                            {% if not categoria_tem_icone(c.nome) %}
+                                <br><span class="badge bg-warning text-dark categorias-admin-badge-generico">genérico</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <input form="formCategoria{{ c.id }}" type="text" name="nome" value="{{ c.nome }}" class="form-control form-control-sm" required>
+                        </td>
+                        <td>
+                            <select form="formCategoria{{ c.id }}" name="grupo" id="selectGrupoCategoria{{ c.id }}" class="form-select form-select-sm"
+                                    onchange="document.getElementById('novoGrupoWrap{{ c.id }}').style.display = (this.value === '_novo') ? 'block' : 'none';">
+                                <option value="">-- sem grupo --</option>
+                                {% for g in grupos_categorias %}
+                                <option value="{{ g }}" {% if c.grupo == g %}selected{% endif %}>{{ g }}</option>
+                                {% endfor %}
+                                <option value="_novo" {% if c.grupo and c.grupo not in grupos_categorias %}selected{% endif %}>+ Novo grupo...</option>
+                            </select>
+                            <input form="formCategoria{{ c.id }}" type="text" id="novoGrupoWrap{{ c.id }}" name="novo_grupo"
+                                   class="form-control form-control-sm mt-1"
+                                   style="display:{{ 'block' if c.grupo and c.grupo not in grupos_categorias else 'none' }};"
+                                   placeholder="Nome do novo grupo"
+                                   value="{{ c.grupo if c.grupo and c.grupo not in grupos_categorias else '' }}">
+                        </td>
+                        <td class="text-nowrap">
+                            <button form="formCategoria{{ c.id }}" class="btn btn-outline-primary btn-sm">Salvar</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% endfor %}
         </div>
     </details>
 </div>
@@ -291,8 +313,12 @@
                     <form method="post" action="/admin/indicacao/{{ i.id }}/categoria" class="d-flex gap-1 align-items-center flex-nowrap">
                         <select name="categoria_id" class="form-select form-select-sm" style="min-width:140px">
                             <option value="">-- sem categoria --</option>
-                            {% for c in categorias %}
-                            <option value="{{ c.id }}" {% if i.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                            {% for grupo_nome, cats in categorias_por_grupo %}
+                            <optgroup label="{{ grupo_emoji(grupo_nome) }} {{ grupo_nome }}">
+                                {% for c in cats %}
+                                <option value="{{ c.id }}" {% if i.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                                {% endfor %}
+                            </optgroup>
                             {% endfor %}
                         </select>
                         <button class="btn btn-outline-primary btn-sm" title="Salvar categoria">Salvar</button>

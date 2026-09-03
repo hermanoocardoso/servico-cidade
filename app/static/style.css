@@ -740,6 +740,36 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     color: #fff;
 }
 
+/* Checklist de categorias no cadastro/edição do profissional, agrupado do
+   mesmo jeito que o menu "Ver todas as categorias" da home (mesma
+   identidade visual: título pequeno, maiúsculo, discreto). */
+.categorias-perfil-grupo + .categorias-perfil-grupo {
+    margin-top: 0.9rem;
+}
+.categorias-perfil-titulo {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.35rem;
+}
+
+/* Mesma organização por grupo, no painel admin (edição de categorias) */
+.categorias-admin-grupo + .categorias-admin-grupo {
+    margin-top: 1.25rem;
+}
+.categorias-admin-titulo {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    margin: 0 0 0.4rem;
+}
+.categorias-admin-badge-generico {
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+
 /* Ícone redondo de categoria — ainda usado nos cards de serviço da home
    de visitante. */
 .category-icon {
@@ -947,7 +977,8 @@ details summary.ver-todas-categorias::-webkit-details-marker {
 .busca-combo-campo + .busca-combo-campo {
     border-left: 1px solid #E3E6EF;
 }
-.busca-combo-campo input {
+.busca-combo-campo input,
+.busca-combo-campo select {
     border: none;
     outline: none;
     background: transparent;
@@ -956,19 +987,25 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     min-width: 0;
     color: var(--cor-texto);
 }
+.busca-combo-campo select:disabled {
+    color: var(--cor-texto-suave);
+}
 .busca-combo-icone {
     color: var(--cor-texto-suave);
     font-size: 1.05rem;
     flex-shrink: 0;
 }
 /* O campo "o que você precisa" é o principal: fica com toda a sobra de
-   largura; a localização ocupa uma faixa fixa e menor ao lado. */
+   largura; estado e cidade ocupam faixas fixas e menores ao lado. */
 .busca-combo-campo-servico {
     flex: 1 1 auto;
     min-width: 0;
 }
+.busca-combo-campo-estado {
+    flex: 0 0 100px;
+}
 .busca-combo-campo-local {
-    flex: 0 0 210px;
+    flex: 0 0 170px;
 }
 .busca-combo-btn {
     border-radius: 50px;
@@ -1062,6 +1099,7 @@ details summary.ver-todas-categorias::-webkit-details-marker {
     .busca-combo-campo + .busca-combo-campo {
         border-left: 1px solid #E9ECF5;
     }
+    .busca-combo-campo-estado,
     .busca-combo-campo-local {
         flex-basis: auto;
     }
@@ -1810,4 +1848,89 @@ img.hero-foto-profissional.img-logo {
 img.foto-atual-thumb.img-logo {
     padding: 4px;
     border: 1px solid #EEF0F7;
+}
+
+/* Sino de notificação do admin (novos cadastros) na navbar */
+.notificacoes-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    font-size: 0.65rem;
+    padding: 0.25em 0.45em;
+}
+.notificacoes-lista {
+    min-width: 280px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+.notificacao-item {
+    white-space: normal;
+    padding: 0.25rem 0;
+}
+.notificacao-nova {
+    position: relative;
+    padding-left: 0.75rem;
+}
+.notificacao-nova::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--bs-danger, #dc3545);
+}
+
+/* Faixa decorativa com os últimos profissionais cadastrados, passando
+   devagar no fundo da home -- baixa opacidade de propósito, pra não competir
+   visualmente com o resto da página (ver landing.html). */
+.ticker-recentes {
+    overflow: hidden;
+    opacity: 0.55;
+    margin: 0.25rem 0 1.75rem;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.ticker-recentes-trilha {
+    display: flex;
+    width: max-content;
+    gap: 2.5rem;
+    animation: ticker-rolar 45s linear infinite;
+}
+.ticker-recentes-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--cor-texto-suave);
+}
+.ticker-recentes-foto {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.ticker-recentes-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #E3E6EF;
+    color: var(--cor-texto-suave);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+@keyframes ticker-rolar {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ticker-recentes-trilha { animation: none; }
 }

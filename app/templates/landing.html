@@ -28,10 +28,21 @@
                         <label for="hero-busca" class="visually-hidden">O que você precisa?</label>
                         <input type="text" id="hero-busca" name="busca" placeholder="O que você precisa?">
                     </div>
-                    <div class="busca-combo-campo busca-combo-campo-local">
+                    <div class="busca-combo-campo busca-combo-campo-estado">
                         <span class="busca-combo-icone" aria-hidden="true">📍</span>
-                        <label for="hero-cidade" class="visually-hidden">Sua localização</label>
-                        <input type="text" id="hero-cidade" name="cidade" placeholder="Sua localização">
+                        <label for="hero-estado" class="visually-hidden">Estado</label>
+                        <select id="hero-estado" name="estado" class="busca-combo-select">
+                            <option value="">Estado</option>
+                            {% for sigla, nome in ufs_brasil %}
+                            <option value="{{ sigla }}">{{ sigla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="busca-combo-campo busca-combo-campo-local">
+                        <label for="hero-cidade" class="visually-hidden">Cidade</label>
+                        <select id="hero-cidade" name="cidade" class="busca-combo-select" disabled>
+                            <option value="">Selecione o estado</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-primary busca-combo-btn" id="btnBuscarHero">Encontrar profissional</button>
                 </form>
@@ -101,6 +112,7 @@
     </div>
 </div>
 
+<script src="/static/js/estado-cidade.js"></script>
 <script>
 (function () {
     // --- Placeholder rotativo (exemplos reais de busca) ---
@@ -158,6 +170,11 @@
     // --- Localização ---
     var btn = document.getElementById("btnLocalizacaoHero");
     var status = document.getElementById("statusLocalizacaoHero");
+    var cascataHero = EstadoCidade.montar({
+        estadoSelect: document.getElementById("hero-estado"),
+        cidadeSelect: document.getElementById("hero-cidade"),
+        placeholderCidade: "Cidade",
+    });
 
     btn.addEventListener("click", function () {
         if (!navigator.geolocation) {
@@ -179,30 +196,28 @@
                     .then(function (data) {
                         var end = data.address || {};
                         var cidade = end.city || end.town || end.municipality || "";
-                        var bairro = end.suburb || end.neighbourhood || end.city_district || end.quarter || "";
-                        var local = cidade || bairro;
+                        var uf = EstadoCidade.ufPorNomeEstado(end.state || "");
                         btn.disabled = false;
-                        var inputCidade = document.getElementById("hero-cidade");
-                        if (local) {
-                            inputCidade.value = local;
-                            var onde = bairro && cidade ? (bairro + ", " + cidade) : local;
+                        if (cidade && uf) {
                             var linkMapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-                            status.innerHTML = "Você está em <strong>" + onde + "</strong> — " +
+                            status.innerHTML = "Você está em <strong>" + cidade + "/" + uf + "</strong> — " +
                                 '<a href="#" id="linkBuscarLocal">buscar profissionais aqui</a>.<br>' +
                                 '<span class="text-muted">Coordenada recebida: ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
                                 (precisao ? " (precisão ±" + precisao.toLocaleString("pt-BR") + "m)" : "") +
                                 ' — <a href="' + linkMapa + '" target="_blank" rel="noopener">ver no mapa</a></span>';
                             document.getElementById("linkBuscarLocal").addEventListener("click", function (e) {
                                 e.preventDefault();
-                                inputCidade.form.submit();
+                                cascataHero.definir(uf, cidade).then(function () {
+                                    document.getElementById("hero-cidade").form.submit();
+                                });
                             });
                         } else {
-                            status.textContent = "Não consegui identificar sua cidade. Digite na busca acima.";
+                            status.textContent = "Não consegui identificar sua cidade. Selecione na busca acima.";
                         }
                     })
                     .catch(function () {
                         btn.disabled = false;
-                        status.textContent = "Não consegui identificar seu bairro agora.";
+                        status.textContent = "Não consegui identificar sua localização agora.";
                     });
             },
             function (erro) {
@@ -225,6 +240,60 @@
         btnBuscar.disabled = true;
         btnBuscar.textContent = "Procurando...";
     });
+})();
+</script>
+
+{# Faixa discreta com os últimos profissionais cadastrados, passando devagar
+   no fundo -- só decorativa (aria-hidden), sem interferir na navegação. Se
+   não tiver nenhum profissional ainda, o JS simplesmente não mostra nada. #}
+<div class="ticker-recentes" id="tickerRecentes" aria-hidden="true" hidden>
+    <div class="ticker-recentes-trilha" id="tickerRecentesTrilha"></div>
+</div>
+<script>
+(function () {
+    var caixa = document.getElementById("tickerRecentes");
+    var trilha = document.getElementById("tickerRecentesTrilha");
+
+    function montarItem(p) {
+        var item = document.createElement("span");
+        item.className = "ticker-recentes-item";
+
+        if (p.foto_url) {
+            var img = document.createElement("img");
+            img.className = "ticker-recentes-foto";
+            img.src = p.foto_url;
+            img.alt = "";
+            img.loading = "lazy";
+            item.appendChild(img);
+        } else {
+            var avatar = document.createElement("span");
+            avatar.className = "ticker-recentes-avatar";
+            avatar.textContent = (p.nome || "?").trim().charAt(0).toUpperCase();
+            item.appendChild(avatar);
+        }
+
+        var texto = document.createElement("span");
+        var partes = [p.nome];
+        if (p.categoria) partes.push("· " + p.categoria);
+        if (p.cidade) partes.push("· " + p.cidade);
+        texto.textContent = partes.join(" ");
+        item.appendChild(texto);
+        return item;
+    }
+
+    fetch("/api/ultimos-profissionais")
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (profissionais) {
+            if (!profissionais || !profissionais.length) return;
+            // Duplica a lista uma vez: a animação anda -50% da largura total
+            // e reinicia, então com o conteúdo repetido o loop fica contínuo,
+            // sem "pulo" perceptível no fim da volta.
+            profissionais.concat(profissionais).forEach(function (p) {
+                trilha.appendChild(montarItem(p));
+            });
+            caixa.hidden = false;
+        })
+        .catch(function () {});
 })();
 </script>
 

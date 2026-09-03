@@ -32,18 +32,33 @@
                 <input type="tel" name="telefone_profissional" value="{{ valores.telefone_profissional if valores else '' }}" class="form-control" placeholder="(22) 99999-9999" required>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Categoria</label>
                     <select name="categoria_id" class="form-select" required>
                         <option value="" disabled {% if not valores or not valores.categoria_id %}selected{% endif %}>Selecione a categoria</option>
-                        {% for c in categorias %}
-                        <option value="{{ c.id }}" {% if valores and valores.categoria_id == c.id|string %}selected{% endif %}>{{ c.nome }}</option>
+                        {% for grupo_nome, cats in categorias_por_grupo %}
+                        <optgroup label="{{ grupo_emoji(grupo_nome) }} {{ grupo_nome }}">
+                            {% for c in cats %}
+                            <option value="{{ c.id }}" {% if valores and valores.categoria_id == c.id|string %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </optgroup>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Cidade / bairro</label>
-                    <input type="text" name="cidade" value="{{ valores.cidade if valores else '' }}" class="form-control" required>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="campoEstadoIndicar">Estado</label>
+                    <select name="estado" id="campoEstadoIndicar" class="form-select" required>
+                        <option value="">UF</option>
+                        {% for sigla, nome in ufs_brasil %}
+                        <option value="{{ sigla }}" {% if valores and valores.estado == sigla %}selected{% endif %}>{{ sigla }} — {{ nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="campoCidadeIndicar">Cidade</label>
+                    <select name="cidade" id="campoCidadeIndicar" class="form-select" required disabled>
+                        <option value="">Selecione o estado primeiro</option>
+                    </select>
                 </div>
             </div>
             <div class="mb-4">
@@ -55,4 +70,12 @@
         {% endif %}
     </div>
 </div>
+<script src="/static/js/estado-cidade.js"></script>
+<script>
+EstadoCidade.montar({
+    estadoSelect: document.getElementById("campoEstadoIndicar"),
+    cidadeSelect: document.getElementById("campoCidadeIndicar"),
+    cidadeInicial: {{ (valores.cidade if valores else "") | tojson }},
+});
+</script>
 {% endblock %}

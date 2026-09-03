@@ -44,10 +44,14 @@ class User(Base):
     senha_hash = Column(String(255), nullable=True)  # nulo para quem só entra com Google
     google_id = Column(String(64), nullable=True, unique=True, index=True)
     tipo = Column(String(20), nullable=False, default="cliente")  # "cliente" ou "profissional"
+    estado = Column(String(2), nullable=True)  # UF de onde a pessoa mora
     cidade = Column(String(120), nullable=True)  # onde a pessoa mora, usado pra agrupar o catálogo por bairro
     bairro = Column(String(120), nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)  # admin pode bloquear o login de uma conta
     criado_em = Column(DateTime, default=datetime.utcnow)
+    # Quando o admin viu pela última vez o sino de notificações de novo
+    # cadastro -- só é usado em quem é admin (ver ADMIN_EMAILS em main.py).
+    notificacoes_vistas_em = Column(DateTime, nullable=True)
 
     perfil_profissional = relationship(
         "ProfessionalProfile", back_populates="usuario", uselist=False,
@@ -79,6 +83,7 @@ class ProfessionalProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
 
+    estado = Column(String(2), nullable=True)  # UF de onde o profissional atende
     cidade = Column(String(120), nullable=False)
     bairro = Column(String(120), nullable=True)
     endereco = Column(String(255), nullable=True)
@@ -195,6 +200,7 @@ class Indicacao(Base):
     nome_profissional = Column(String(120), nullable=False)
     telefone_profissional = Column(String(20), nullable=False)
     categoria_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    estado = Column(String(2), nullable=True)
     cidade = Column(String(120), nullable=True)
     observacao = Column(Text, nullable=True)
 
