@@ -1864,18 +1864,17 @@ img.foto-atual-thumb.img-logo {
     overflow-y: auto;
 }
 .notificacao-item {
+    display: block;
     white-space: normal;
-    padding: 0.25rem 0;
 }
 .notificacao-nova {
     position: relative;
-    padding-left: 0.75rem;
 }
 .notificacao-nova::before {
     content: "";
     position: absolute;
-    left: 0;
-    top: 0.4rem;
+    left: 0.35rem;
+    top: 0.65rem;
     width: 6px;
     height: 6px;
     border-radius: 50%;

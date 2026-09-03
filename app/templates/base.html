@@ -235,8 +235,13 @@
 
         function montarItem(item) {
             var li = document.createElement("li");
-            var span = document.createElement("span");
-            span.className = "dropdown-item-text notificacao-item" + (item.novo ? " notificacao-nova" : "");
+            // Clica na notificação e vai direto pro cadastro dessa pessoa
+            // (cliente, profissional ou empresa -- a mesma tela de edição
+            // de conta serve pros três, com atalho pro perfil profissional
+            // quando for o caso).
+            var link = document.createElement("a");
+            link.className = "dropdown-item notificacao-item" + (item.novo ? " notificacao-nova" : "");
+            link.href = "/admin/usuario/" + item.id + "/editar";
 
             var linhaNome = document.createElement("div");
             var forte = document.createElement("strong");
@@ -251,9 +256,9 @@
             linhaData.className = "text-muted small";
             linhaData.textContent = item.data_hora;
 
-            span.appendChild(linhaNome);
-            span.appendChild(linhaData);
-            li.appendChild(span);
+            link.appendChild(linhaNome);
+            link.appendChild(linhaData);
+            li.appendChild(link);
             return li;
         }
 

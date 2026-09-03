@@ -2049,6 +2049,7 @@ def admin_notificacoes_dados(db: Session = Depends(get_db), usuario=Depends(auth
     )
     itens = [
         {
+            "id": u.id,
             "nome": u.nome,
             "tipo": u.tipo,
             "data_hora": u.criado_em.strftime("%d/%m/%Y %H:%M") if u.criado_em else "",
